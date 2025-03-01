@@ -29,3 +29,6 @@ simple_factory_demo-*.tar
 
 # Custom rules
 *gitignored*
+
+# Local config
+*.local.env
