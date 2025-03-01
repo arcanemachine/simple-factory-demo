@@ -6,6 +6,7 @@ defmodule SimpleFactoryDemo.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      SimpleFactoryDemo.Repo
     ]
 
     opts = [strategy: :one_for_one, name: SimpleFactoryDemo.Supervisor]
