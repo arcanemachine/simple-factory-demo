@@ -1,29 +1,37 @@
 defmodule SimpleFactoryDemo.Factories.Users do
   # use SimpleFactory, strategy: {SimpleFactory.Strategies.Ecto, repo: SimpleFactoryDemo.Repo}
 
-  alias SimpleFactoryDemo.Repo
-  alias SimpleFactoryDemo.Users.User
+  # alias SimpleFactoryDemo.Repo
+  # alias SimpleFactoryDemo.Users.User
 
-  factory User do
-    name :user_factory
+  # factory :user_factory do
+  #   %{
+  #     repo: Repo,
+  #     schema: User,
+  #     actions: [:build, :insert],
+  #   }
+  # end
 
-    # repo Repo
+  # factory User do
+  #   name :user_factory
 
-    actions [
-      build: fn attrs -> struct(User, attrs) end,
-      insert: fn attrs -> struct(User, attrs) |> User.changeset() |> Repo.insert() end,
-      # insert: fn attrs -> apply_action(:build, attrs) |> User.changeset() |> Repo.insert() end,
-      insert!: fn attrs -> struct(User, attrs) |> User.changeset() |> Repo.insert!() end
-    ]
+  #   # repo Repo
 
-    params fn attrs -> do
-      %{
-        id: attrs[:id],
-        username: attrs[:username] || Faker.Internet.username(),
-        author: attrs[:author]
-      }
-    end
+  #   actions [
+  #     build: fn attrs -> struct(User, attrs) end,
+  #     insert: fn attrs -> struct(User, attrs) |> User.changeset() |> Repo.insert() end,
+  #     # insert: fn attrs -> apply_action(:build, attrs) |> User.changeset() |> Repo.insert() end,
+  #     insert!: fn attrs -> struct(User, attrs) |> User.changeset() |> Repo.insert!() end
+  #   ]
 
-    changeset [{User, :changeset, 2}]
-  end
+  #   params fn attrs -> do
+  #     %{
+  #       id: attrs[:id],
+  #       username: attrs[:username] || Faker.Internet.username(),
+  #       author: attrs[:author]
+  #     }
+  #   end
+
+  #   changeset [{User, :changeset, 2}]
+  # end
 end
