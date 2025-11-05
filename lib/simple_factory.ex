@@ -1,6 +1,7 @@
 defmodule SimpleFactory do
   @moduledoc """
-  This project generates test factories for automated testing.
+  This project allows you to create test factories, eliminating boilerplate and accelerating
+  testing workflows.
 
   ## Getting started
 
@@ -9,13 +10,15 @@ defmodule SimpleFactory do
 
   defmacro __using__(opts \\ []) do
     quote do
-      @repo unquote(opts[:repo])
+      import SimpleFactory
+
+      @factory_repo unquote(opts[:repo])
     end
   end
 
   defmacro factory(schema, opts \\ []) do
     quote bind_quoted: [schema: schema, opts: opts] do
-      {repo, opts} = Keyword.pop(opts, :repo, @factory_repo || raise("repo not declared"))
+      {repo, opts} = Keyword.pop(opts, :repo, @factory_repo)
 
       factory_name =
         Keyword.get(opts, :name, schema |> Module.split() |> List.last() |> String.downcase())
@@ -29,7 +32,9 @@ defmodule SimpleFactory do
 
       # Custom actions
       def unquote(:"insert_#{factory_name}")(params \\ %{}) do
-        apply(__MODULE__, unquote(build_function_name), params) |> unquote(repo).insert()
+        built_item = apply(__MODULE__, unquote(build_function_name), [params])
+
+        unquote(repo).insert(built_item)
       end
     end
   end

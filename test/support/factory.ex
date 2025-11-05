@@ -1,14 +1,8 @@
 defmodule SimpleFactoryDemo.Factory do
-  import SimpleFactory
+  use SimpleFactory, repo: SimpleFactory.Repo
 
   alias SimpleFactoryDemo.Repo
   alias SimpleFactoryDemo.Users.User
 
-  @factory_repo Repo
-
   factory(User, repo: Repo)
-
-  # factory "user_factory" do
-  #   hello: :world
-  # end
 end
