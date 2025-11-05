@@ -4,9 +4,9 @@ defmodule SimpleFactoryDemo.Factory do
   alias SimpleFactoryDemo.Repo
   alias SimpleFactoryDemo.Users.User
 
-  factory User, Repo do
-    :ok
-  end
+  @factory_repo Repo
+
+  factory(User, repo: Repo)
 
   # factory "user_factory" do
   #   hello: :world
