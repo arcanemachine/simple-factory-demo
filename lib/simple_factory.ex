@@ -31,10 +31,12 @@ defmodule SimpleFactory do
       end
 
       # Custom actions
-      def unquote(:"insert_#{factory_name}")(params \\ %{}) do
-        built_item = apply(__MODULE__, unquote(build_function_name), [params])
+      if not is_nil(repo) do
+        def unquote(:"insert_#{factory_name}")(params \\ %{}) do
+          built_item = apply(__MODULE__, unquote(build_function_name), [params])
 
-        unquote(repo).insert(built_item)
+          unquote(repo).insert(built_item)
+        end
       end
     end
   end
