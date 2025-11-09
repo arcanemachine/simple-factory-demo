@@ -14,7 +14,7 @@ defmodule FactoryMan do
       import FactoryMan
 
       defmacro __using__(opts \\ []) do
-        {repo, opts} = Keyword.get(opts, :repo, parent_repo)
+        {repo, opts} = Keyword.get(opts, :repo, unquote(parent_repo))
 
         quote do
           @factory_repo unquote(opts[:repo])
