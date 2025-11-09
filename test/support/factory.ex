@@ -1,3 +1,4 @@
 defmodule SimpleFactoryDemo.Factory do
-  use FactoryMan, repo: Repo
+  # , repo: Repo
+  use FactoryMan, hello: :world, goodbye: :troubles
 end

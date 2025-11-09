@@ -1,12 +1,15 @@
 defmodule SimpleFactoryDemo.Factories.Users do
-  use SimpleFactoryDemo.Factory
+  use SimpleFactoryDemo.Factory, hello: :everyone
 
   alias SimpleFactoryDemo.Repo
   alias SimpleFactoryDemo.Users.User
 
-  factory(User, repo: Repo)
+  # import SimpleFactoryDemo.Factory
 
-  def build_user(params), do: build(params)
+  # factory(User, hello: :people, something: :else)
+  # factory(hello: :people)
+
+  # def build_user(params), do: build(params)
 
   # build: fn params ->
   #   %{

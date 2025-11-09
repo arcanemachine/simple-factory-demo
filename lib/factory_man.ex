@@ -1,65 +1,122 @@
 defmodule FactoryMan do
   @moduledoc """
-  Create and customize test factories for synthetic data generation during tests.
+  Create and customize test factories for generating synthetic data during tests.
 
   ## Getting started
 
-  Factories may be located in `test/support/factories/[your_context].ex`.
+  ## Creating factory definitions
+
+  Put factory definitions in `test/support/factory.ex` (e.g. `YourProject.Factory`). This will be
+  used to to build factory instances. You should also define more factories in this namespace if
+  needed (e.g. `YourProject.Factory.OtherFactory`).
+
+  > #### Tip {: .tip}
+  >
+  > Factory definitions SHOULD be located in a non-pluralized namespace (e.g.
+  > `YourProject.Factory`).
+
+  ## Creating factory instances
+
+  Create a factory instance for each context (e.g. `test/support/factories/users.ex`
+  (`YourProject.Factories.Users`).
+
+  Factory instances SHOULD be located in `test/support/factories/[your_context].ex`.
+
+  > #### Tip {: .tip}
+  >
+  > Factory instances SHOULD be located in a pluralized namespace (e.g.
+  > `YourProject.Factories.Users`).
   """
 
-  defmacro __using__(opts \\ []) do
-    {parent_repo, _opts} = Keyword.get(opts, :repo)
+  defmacro __using__(definition_opts \\ []) do
+    # {definition_repo, _opts} = Keyword.get(opts, :repo)
 
     quote do
-      import FactoryMan
+      defmacro __using__(instance_opts \\ []) do
+        # {repo, opts} = Keyword.get(opts, :repo, definition_opts[:repo])
 
-      defmacro __using__(opts \\ []) do
-        {repo, opts} = Keyword.get(opts, :repo, unquote(parent_repo))
+        # definition_opts = unquote(Macro.escape(definition_opts))
+        definition_opts = unquote(Macro.escape(definition_opts))
 
         quote do
-          @factory_repo unquote(opts[:repo])
+          # @factory_repo unquote(opts[:repo])
 
-          defmacro factory(schema, opts \\ []) do
-            quote bind_quoted: [schema: schema, opts: opts] do
-              factory_name =
-                Keyword.get(
-                  opts,
-                  :name,
-                  schema |> Module.split() |> List.last() |> String.downcase()
-                )
+          # merged_definition_instance_opts = Keyword.merge(unquote(definition_opts), unquote(instance_opts))
 
-              # Build
-              build_function_name = :"build_#{factory_name}"
+          # Keyword.merge(unquote(definition_opts), unquote(instance_opts))
+          # |> IO.inspect(label: :fixme1)
 
-              def unquote(build_function_name)(params \\ %{})
+          # opts = unquote(definition_opts) |> Keyword.merge(unquote(instance_opts))
 
-              def unquote(build_function_name)(params) do
-                struct(unquote(schema), params)
-              end
+          # def hello, do: unquote(definition_opts)
+          merged_definition_instance_opts =
+            Keyword.merge(unquote(definition_opts), unquote(instance_opts))
 
-              # Insert!
-              insert_function_name = :"insert_#{factory_name}!"
+          def merged_definition_instance_opts,
+            do: Keyword.merge(unquote(definition_opts), unquote(instance_opts))
 
-              if not is_nil(repo) do
-                def unquote(insert_function_name)(params \\ %{})
+          # defmacro factory(schema, factory_opts \\ []) do
+          defmacro factory(factory_opts \\ []) do
+            # merged_definition_instance_opts = unquote(Macro.escape(merged_definition_instance_opts))
 
-                def unquote(insert_function_name)(params) do
-                  built_item = apply(__MODULE__, unquote(build_function_name), [params])
+            # definition_opts = unquote(Macro.escape(definition_opts))
+            # instance_opts = unquote(Macro.escape(instance_opts))
 
-                  FactoryMan.insert(unquote(repo), built_item)
-                end
-              end
+            opts = factory_opts
 
-              defoverridable [{build_function_name, 1}, {insert_function_name, 1}]
+            # opts =
+            #   unquote(definition_opts)
+            #   |> Keyword.merge(unquote(instance_opts))
+            #   |> Keyword.merge(factory_opts)
+
+            quote do
+              # import __MODULE__
+
+              def hello, do: unquote(opts)
+
+              # opts = Keyword.merge(unquote(merged_definition_instance_opts), unquote(factory_opts))
+
+              # factory_name =
+              #   Keyword.get(
+              #     factory_opts,
+              #     :name,
+              #     schema |> Module.split() |> List.last() |> String.downcase()
+              #   )
+
+              # # Build
+              # build_function_name = :"build_#{factory_name}"
+
+              # def unquote(build_function_name)(params \\ %{})
+
+              # def unquote(build_function_name)(params) do
+              #   struct(unquote(schema), params)
+              # end
+
+              # defoverridable [{build_function_name, 1}]
+
+              # # Insert!
+              # if not is_nil(repo) do
+              #   insert_function_name = :"insert_#{factory_name}!"
+
+              #   def unquote(insert_function_name)(params \\ %{})
+
+              #   def unquote(insert_function_name)(params) do
+              #     built_item = unquote(build_function_name)(params)
+
+              #     FactoryMan.insert(unquote(repo), built_item)
+              #   end
+
+              #   defoverridable [{build_function_name, 1}, {insert_function_name, 1}]
+              # end
             end
           end
         end
       end
 
-      @spec insert!(module(), struct()) :: struct()
-      def insert!(repo, struct), do: repo.insert(struct)
+      # @spec insert!(module(), struct()) :: struct()
+      # def insert!(repo, struct), do: repo.insert(struct)
 
-      defoverridable insert!: 2
+      # defoverridable insert!: 2
     end
   end
 end
