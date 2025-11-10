@@ -51,27 +51,21 @@ defmodule FactoryMan do
 
   defmacro factory(schema, opts \\ []) do
     quote bind_quoted: [schema: schema, opts: opts] do
-      if not Module.has_attribute?(__MODULE__, :factory_repo) do
-        Module.register_attribute(__MODULE__, :factory_repo, [])
-      end
-
-      {repo, opts} = Keyword.pop(opts, :repo, @factory_repo)
-
-      Module.put_attribute(__MODULE__, :factory_repo, @factory_repo || repo)
+      {repo, opts} = Keyword.pop(opts, :repo, @factory_opts[:repo])
 
       {factory_name, opts} =
         Keyword.pop(opts, :repo, schema |> Module.split() |> List.last() |> String.downcase())
 
-      # # Build
-      # build_function_name = :"build_#{factory_name}"
+      # Build
+      build_function_name = :"build_#{factory_name}"
 
-      # def unquote(build_function_name)(params \\ %{})
+      def unquote(build_function_name)(params \\ %{})
 
-      # def unquote(build_function_name)(params) do
-      #   struct(schema, params)
-      # end
+      def unquote(build_function_name)(params) do
+        struct(unquote(schema), params)
+      end
 
-      # defoverridable [{build_function_name, 1}]
+      defoverridable [{build_function_name, 1}]
 
       # # Insert!
       # if not is_nil(repo) do

@@ -1,16 +1,15 @@
 defmodule SimpleFactoryDemo.Factories.Users do
-  # , repo: Repo
   use FactoryMan, extends: SimpleFactoryDemo.Factory
 
-  @factory_opts |> IO.inspect(label: __MODULE__)
+  alias SimpleFactoryDemo.Users.User
+
+  factory(User)
 
   # def hello, do: Factory.get_opts()
 
   # Factory.factory(User)
 
   # def hello2, do: hello()
-
-  # alias SimpleFactoryDemo.Users.User
 
   # @factory_repo Repo
 
