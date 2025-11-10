@@ -1,8 +1,12 @@
 defmodule SimpleFactoryDemo.Factories.Users do
   # , repo: Repo
-  import SimpleFactoryDemo.Factory
+  use FactoryMan, extends: SimpleFactoryDemo.Factory
 
-  get_parent_factory_opts()
+  @factory_opts |> IO.inspect(label: __MODULE__)
+
+  # def hello, do: Factory.get_opts()
+
+  # Factory.factory(User)
 
   # def hello2, do: hello()
 

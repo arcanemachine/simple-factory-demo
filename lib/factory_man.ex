@@ -30,7 +30,22 @@ defmodule FactoryMan do
 
   defmacro __using__(opts \\ []) do
     quote do
-      def get_parent_factory_opts, do: unquote(opts)
+      # Import factory macro from current module
+      import unquote(__MODULE__)
+
+      {extends, opts} = Keyword.pop(unquote(opts), :extends)
+
+      factory_opts =
+        case extends do
+          nil ->
+            unquote(opts)
+
+          extends ->
+            # Extend parent factory opts
+            Keyword.merge(Module.get_attribute(extends, :factory_opts, []), unquote(opts))
+        end
+
+      @factory_opts factory_opts
     end
   end
 
@@ -47,16 +62,16 @@ defmodule FactoryMan do
       {factory_name, opts} =
         Keyword.pop(opts, :repo, schema |> Module.split() |> List.last() |> String.downcase())
 
-      # Build
-      build_function_name = :"build_#{factory_name}"
+      # # Build
+      # build_function_name = :"build_#{factory_name}"
 
-      def unquote(build_function_name)(params \\ %{})
+      # def unquote(build_function_name)(params \\ %{})
 
-      def unquote(build_function_name)(params) do
-        struct(schema, params)
-      end
+      # def unquote(build_function_name)(params) do
+      #   struct(schema, params)
+      # end
 
-      defoverridable [{build_function_name, 1}]
+      # defoverridable [{build_function_name, 1}]
 
       # # Insert!
       # if not is_nil(repo) do
