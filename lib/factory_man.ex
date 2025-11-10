@@ -38,6 +38,7 @@ defmodule FactoryMan do
       factory_opts =
         case extends do
           nil ->
+            # Use opts from current factory only
             unquote(opts)
 
           extends ->

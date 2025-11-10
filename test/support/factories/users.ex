@@ -5,6 +5,10 @@ defmodule SimpleFactoryDemo.Factories.Users do
 
   factory(User)
 
+  # def build_user(params \\ %{}) do
+  #   super(params) |> IO.inspect(label: :fixme1)
+  # end
+
   # def hello, do: Factory.get_opts()
 
   # Factory.factory(User)
