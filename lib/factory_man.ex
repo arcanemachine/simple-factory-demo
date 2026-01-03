@@ -45,8 +45,6 @@ defmodule FactoryMan do
             Keyword.merge(parent_opts, unquote(opts))
         end
 
-      # @before_compile unquote(__MODULE__)
-
       # Put options into a module attribute that can be read by the factory instances
       Module.register_attribute(__MODULE__, :factory_opts, persist: true)
       Module.put_attribute(__MODULE__, :factory_opts, factory_opts)
@@ -55,8 +53,8 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro factory(schema, opts \\ []) do
-    quote bind_quoted: [schema: schema, opts: opts] do
+  defmacro factory(opts \\ []) do
+    quote bind_quoted: [opts: opts] do
       opts =
         Module.get_attribute(__MODULE__, :factory_opts)
         |> Keyword.delete(:extends)
@@ -64,29 +62,13 @@ defmodule FactoryMan do
 
       repo = opts[:repo]
 
-      factory_name =
-        Keyword.get(opts, :name, schema |> Module.split() |> List.last() |> String.downcase())
+      factory_name = Keyword.fetch!(opts, :name)
 
       def unquote(String.to_atom("__#{String.upcase("#{factory_name}")}_FACTORY__"))(),
         do: unquote(opts)
 
       # Build
-      build_function_name =
-        if opts[:build] != nil do
-          {build_function_name, arity} = Macro.escape(opts[:build])
-
-          build_function_name
-        else
-          build_function_name = :"build_#{factory_name}"
-
-          def unquote(build_function_name)(params \\ %{}) do
-            struct(unquote(schema), params)
-          end
-
-          # defoverridable [{build_function_name, 1}]
-
-          build_function_name
-        end
+      {build_function_name, _build_function_arity} = Macro.escape(opts[:build])
 
       if not is_nil(repo) do
         # # After insert

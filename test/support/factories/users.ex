@@ -4,7 +4,7 @@ defmodule SimpleFactoryDemo.Factories.Users do
   alias SimpleFactoryDemo.Users.User
 
   factory(
-    User,
+    name: :user,
     build:
       def build_user(params \\ %{}) do
         %User{
