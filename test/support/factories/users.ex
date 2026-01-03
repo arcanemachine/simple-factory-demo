@@ -3,20 +3,15 @@ defmodule SimpleFactoryDemo.Factories.Users do
 
   alias SimpleFactoryDemo.Users.User
 
-  factory(User,
+  factory(
+    User,
     build:
-      (
-        def build_user(params \\ %{})
-
-        def build_user(%{hello: :world}) do
-          # struct(User, params)
-          :a
-        end
-
-        def build_user(params) do
-          struct(User, params)
-        end
-      )
+      def build_user(params \\ %{}) do
+        %User{
+          id: params[:id],
+          username: params[:username] || "alice-#{System.os_time()}"
+        }
+      end
   )
 
   # def build_user(params \\ %{}) do
