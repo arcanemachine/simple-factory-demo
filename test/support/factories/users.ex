@@ -3,7 +3,21 @@ defmodule SimpleFactoryDemo.Factories.Users do
 
   alias SimpleFactoryDemo.Users.User
 
-  factory(User)
+  factory(User,
+    build:
+      (
+        def build_user(params \\ %{})
+
+        def build_user(%{hello: :world}) do
+          # struct(User, params)
+          :a
+        end
+
+        def build_user(params) do
+          struct(User, params)
+        end
+      )
+  )
 
   # def build_user(params \\ %{}) do
   #   super(params) |> IO.inspect(label: :fixme1)

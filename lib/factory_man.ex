@@ -33,20 +33,39 @@ defmodule FactoryMan do
       # Import factory macro from current module
       import unquote(__MODULE__)
 
-      {extends, opts} = Keyword.pop(unquote(opts), :extends)
+      @before_compile unquote(__MODULE__)
+
+      Module.register_attribute(__MODULE__, :factory_opts, persist: true)
+
+      # Put options into a temporary module attribute that can be read in `__before_compile__/1`
+      Module.put_attribute(__MODULE__, :opts, unquote(opts))
+    end
+  end
+
+  defmacro __before_compile__(_env) do
+    quote do
+      {extends, opts} = Keyword.pop(@opts, :extends)
 
       factory_opts =
         case extends do
           nil ->
             # Use opts from current factory only
-            unquote(opts)
+            @opts
 
           extends ->
             # Extend parent factory opts
-            Keyword.merge(Module.get_attribute(extends, :factory_opts, []), unquote(opts))
+            parent_opts = extends.__info__(:attributes)[:factory_opts] || []
+
+            Keyword.merge(parent_opts, @opts)
         end
 
-      @factory_opts factory_opts
+      Module.put_attribute(__MODULE__, :factory_opts, factory_opts)
+
+      # Delete temporary module attribute `:opts`
+      Module.delete_attribute(__MODULE__, :opts)
+
+      # Temp debug stuff
+      def _get_opts, do: @factory_opts
     end
   end
 
@@ -57,16 +76,21 @@ defmodule FactoryMan do
       {factory_name, opts} =
         Keyword.pop(opts, :repo, schema |> Module.split() |> List.last() |> String.downcase())
 
+      # unquote(opts)[:build]
+      # Macro.escape(opts[:build] |> IO.inspect(label: :fixme1))
+
       # Build
-      build_function_name = :"build_#{factory_name}"
+      if opts[:build] != nil do
+        Macro.escape(opts[:build])
+      else
+        build_function_name = :"build_#{factory_name}"
 
-      def unquote(build_function_name)(params \\ %{})
+        def unquote(build_function_name)(params \\ %{}) do
+          struct(unquote(schema), params)
+        end
 
-      def unquote(build_function_name)(params) do
-        struct(unquote(schema), params)
+        # defoverridable [{build_function_name, 1}]
       end
-
-      defoverridable [{build_function_name, 1}]
 
       # # Insert!
       # if not is_nil(repo) do
