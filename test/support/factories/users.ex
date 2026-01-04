@@ -26,7 +26,7 @@ defmodule SimpleFactoryDemo.Factories.Users do
 
           # Fields
           id: params[:id],
-          name: Map.get(params, :name, "Some user")
+          name: Map.get(params, :name, "Some author")
         }
       end
   )

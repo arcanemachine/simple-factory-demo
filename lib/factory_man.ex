@@ -72,10 +72,10 @@ defmodule FactoryMan do
       {build_function_name, _build_function_arity} = Macro.escape(opts[:build])
 
       if not is_nil(repo) and opts[:insert!] != false do
-        # `:after_insert` hook
+        # Handle `:after_insert` hook
         after_insert_handler =
           case opts[:after_insert] do
-            nil -> &FactoryMan.default_after_insert_handler/1
+            nil -> &FactoryMan.after_insert_default_handler/1
             after_insert_handler -> after_insert_handler
           end
 
@@ -86,7 +86,6 @@ defmodule FactoryMan do
           params
           |> unquote(build_function_name)()
           |> unquote(repo).insert!()
-          # Handle `:after_insert` hook
           |> then(unquote(after_insert_handler))
         end
 
@@ -98,5 +97,5 @@ defmodule FactoryMan do
   end
 
   @doc "The default `:after_insert` handler. Returns the unmodified struct."
-  def default_after_insert_handler(%_{} = inserted_struct), do: inserted_struct
+  def after_insert_default_handler(%_{} = inserted_struct), do: inserted_struct
 end
