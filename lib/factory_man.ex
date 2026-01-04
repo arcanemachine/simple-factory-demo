@@ -94,29 +94,10 @@ defmodule FactoryMan do
   FIXME
   ```
 
-  #### `:debug?` (boolean) - Add debug info functions
-
-  This option will produce a debug helper function for each factory (both for the whole module,
-  and for each factory macro) which shows all options that have been passed into the factory. This
-  function may be useful during debugging.
-
-  `your_project/test/support/factory.ex`
-  ```
-  defmodule YourProject.Factory do
-    use FactoryMan, repo: YourProject.Repo, debug?: true
-
-    factory(name: :something, build: def(build_something(_ \\ 0), do: :something), insert?: false)
-  end
-  ```
-
-  ```elixir
-  iex> YourProject.Factory.something_opts()
-  [repo: YourProject.Repo, name: :something, build: {:build_something, 1}, insert?: false]
-
   #### `:extends` (module) - Reduce boilerplate by inheriting options from a parent factory
 
-  You are encouraged (but not required) to create a "base" factory, which can be extended to
-  produce "child" factories (which inherit the options set in the parent factory/ies):
+  You may create a "base" factory, which can be extended to produce "child" factories (which
+  inherit the options set in the parent factory module(s)):
 
   - Create a base factory:
 
@@ -156,6 +137,8 @@ defmodule FactoryMan do
   end
   ```
 
+  This child factory will now use any options set in the parent factory (repo, hooks, etc.).
+
   ## Factory conventions
 
   > NOTE: These conventions are guidelines, not rules.
@@ -165,11 +148,38 @@ defmodule FactoryMan do
     - For more info on "base" and "child" factories, see the section `:extends` option.
 
   - If you are not using "base" and "child" factories, then you should only use the plural
-  namespace (e.g. `YourProject.Factories.Users`).
+  namespace for your factories (e.g. `YourProject.Factories.Users`).
 
   - Create a separate factory for each context. Your factory module hierarchy should match your
   context module hierarchy. For example, if you have a context `YourProject.Users`, you should
   have a factory called `YourProject.Factories.Users`.
+
+  ## Debugging
+
+  A debug helper function is generated for each factory (both for the factory module, and for each
+  factory macro) which shows all options that have been passed into the factory item. This
+  function may be useful during debugging. For example:
+
+  `your_project/test/support/factory.ex`
+  ```
+  defmodule YourProject.Factory do
+    use FactoryMan, repo: YourProject.Repo
+
+    factory(name: :something, build: def(build_something(_ \\ 0), do: :something), insert?: false)
+  end
+  ```
+
+  The module above will generate the functions `YourProject.Factory._factory_opts/0` and
+  `YourProject.Factory._something_opts/0`, which can be called in IEx to view all options that
+  have been used to build those factory items:
+
+  ```elixir
+  iex> YourProject.Factory._factory_opts()
+  [repo: YourProject.Repo]
+
+  iex> YourProject.Factory._something_factory_opts()
+  [repo: YourProject.Repo, name: :something, build: {:build_something, 1}, insert?: false]
+  ```
 
   ## Common recipes
 
@@ -179,7 +189,7 @@ defmodule FactoryMan do
   defmacro __using__(opts \\ []) do
     quote do
       # Import factory macro
-      import unquote(__MODULE__), only: [factory: 1]
+      import unquote(__MODULE__), only: [factory: 0, factory: 1]
 
       factory_opts =
         case unquote(opts)[:extends] do
@@ -194,59 +204,64 @@ defmodule FactoryMan do
             Keyword.merge(parent_opts, unquote(opts))
         end
 
-      # Put factory options into a module attribute that can be read by the child factories
+      # Put factory module options into a module attribute that can be read by the child factories
       Module.register_attribute(__MODULE__, :factory_opts, persist: true)
       Module.put_attribute(__MODULE__, :factory_opts, factory_opts)
 
-      if @factory_opts[:debug?] do
-        @doc "A debug helper function that can show all the options used in this factory module."
-        def factory_opts, do: @factory_opts
-      end
+      @doc "A debug helper function that can show all the options used in this factory module."
+      def _factory_opts, do: @factory_opts
     end
   end
 
-  defmacro factory(opts \\ []) do
+  defmacro factory() do
+    quote do
+      raise "factory options must have a `:name` item"
+    end
+  end
+
+  defmacro factory(opts) do
     quote bind_quoted: [opts: opts] do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
       opts =
         factory_opts
         # Drop keys that do not pertain to individual factories
-        |> Keyword.drop([:debug?, :extends])
+        |> Keyword.drop([:extends])
         |> Keyword.merge(opts)
 
+      factory_name =
+        try do
+          Keyword.fetch!(opts, :name)
+        rescue
+          KeyError -> raise KeyError, message: "factory options must have a `:name` item"
+        end
+
+      @doc "A debug helper function that shows all the options used in this factory."
+      def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
+        do: unquote(Keyword.merge(factory_opts, opts))
+
+      hooks = opts[:hooks] || []
       repo = opts[:repo]
-      factory_name = Keyword.fetch!(opts, :name)
 
-      if factory_opts[:debug?] do
-        @doc "A debug helper function that shows all the options used in this factory."
-        def unquote(String.to_atom("#{factory_name}_opts"))(),
-          do: unquote(opts)
-      end
+      # Build function
+      build_function_name =
+        cond do
+          is_nil(opts[:build]) ->
+            raise "the `:build` option must be a function (e.g. `def build_#{factory_name}(params \\ %{}) do...end`)"
 
-      # Build
-      {build_function_name, _build_function_arity} =
-        case opts[:build] do
-          nil -> raise "the `:build` option must be a function"
-          _ -> Macro.escape(opts[:build])
+          true ->
+            Macro.escape(opts[:build]) |> elem(0)
         end
 
       if not is_nil(repo) and opts[:insert?] != false do
-        # Handle `:after_insert` hook
-        after_insert_handler =
-          case opts[:after_insert] do
-            nil -> &FactoryMan.after_insert_default_handler/1
-            after_insert_handler -> after_insert_handler
-          end
-
-        # Insert
+        # Insert function
         insert_function_name = :"insert_#{factory_name}!"
 
         def unquote(insert_function_name)(params \\ %{}) do
           params
           |> unquote(build_function_name)()
           |> unquote(repo).insert!()
-          |> then(unquote(after_insert_handler))
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
         end
 
         defoverridable [{build_function_name, 1}, {insert_function_name, 1}]
@@ -257,12 +272,28 @@ defmodule FactoryMan do
   end
 
   @doc """
-  The default `:after_insert` handler. Returns the unmodified struct.
+  The default handler for hooks. This function is a no-op, and simply returns the given `value`
+  without any modifications.
 
   ## Examples
 
-      iex> FactoryMan.after_insert_default_handler(%SomeProject.Struct{id: 123})
-      %SomeProject.Struct{id: 123}
+      iex> FactoryMan.default_hook_handler(123)
+      123
   """
-  def after_insert_default_handler(%_{} = inserted_struct), do: inserted_struct
+  def default_hook_handler(value), do: value
+
+  @doc """
+  Get the configured handler for a `hook`, or fall back to `&FactoryMan.default_hook_handler/0`.
+
+  ## Examples
+
+      iex> hooks = [after_insert: &YourProject.Factories.Users.user_after_insert_handler/1]
+
+      iex> FactoryMan.get_hook_handler(hooks, :before_build)
+      &FactoryMan.default_hook_handler/0
+
+      iex> FactoryMan.get_hook_handler(hooks, :after_insert)
+      &YourProject.Factories.Users.user_after_insert_handler/1
+  """
+  def get_hook_handler(hooks, hook), do: hooks[hook] || (&FactoryMan.default_hook_handler/1)
 end

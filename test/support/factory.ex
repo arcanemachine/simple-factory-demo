@@ -1,7 +1,7 @@
 defmodule SimpleFactoryDemo.Factory do
   use FactoryMan,
     repo: SimpleFactoryDemo.Repo,
-    after_insert: &__MODULE__.after_insert_handler/1
+    hooks: [after_insert: &__MODULE__.after_insert_handler/1]
 
   @doc "Reset all assocs so that the item's structure matches a basic database query result."
   def after_insert_handler(%_{} = inserted_struct),

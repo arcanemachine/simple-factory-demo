@@ -7,16 +7,13 @@ defmodule SimpleFactoryDemo.Factories.Users do
   factory(
     name: :user,
     build:
-      (
-        @doc "Hello world"
-        def build_user(params \\ %{}) do
-          %User{
-            id: params[:id],
-            username: Map.get(params, :username, "user-#{System.os_time(:second)}"),
-            author: params[:author]
-          }
-        end
-      )
+      def build_user(params \\ %{}) do
+        %User{
+          id: params[:id],
+          username: Map.get(params, :username, "user-#{System.os_time(:second)}"),
+          author: params[:author]
+        }
+      end
   )
 
   factory(
@@ -33,4 +30,6 @@ defmodule SimpleFactoryDemo.Factories.Users do
         }
       end
   )
+
+  # Other factories...
 end
