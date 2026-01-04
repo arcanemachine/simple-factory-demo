@@ -6,9 +6,9 @@ defmodule FactoryMan do
 
   ## Creating base factories
 
-  Put base factory in `test/support/factory.ex` (e.g. `YourProject.Factory`). This will be
-  used to to build child factory. You should also define more bases factories in this namespace if
-  needed (e.g. `YourProject.Factory.OtherFactory`).
+  Put the base factory in `test/support/factory.ex` (e.g. `YourProject.Factory`). This will be
+  used to to build child factories. You should also define more base factories in this namespace
+  if needed (e.g. `YourProject.Factory.OtherFactory`).
 
   > #### Tip {: .tip}
   >
@@ -30,7 +30,8 @@ defmodule FactoryMan do
   defmacro __using__(opts \\ []) do
     quote do
       # Import factory macro
-      import unquote(__MODULE__)
+      import unquote(__MODULE__), only: [factory: 1]
+      alias unquote(__MODULE__)
 
       factory_opts =
         case unquote(opts)[:extends] do
@@ -39,7 +40,7 @@ defmodule FactoryMan do
             unquote(opts)
 
           extends ->
-            # Extend parent factory opts
+            # Extend base factory opts
             parent_opts = extends.__info__(:attributes)[:factory_opts] || []
 
             Keyword.merge(parent_opts, unquote(opts))
@@ -70,34 +71,32 @@ defmodule FactoryMan do
       # Build
       {build_function_name, _build_function_arity} = Macro.escape(opts[:build])
 
-      if not is_nil(repo) do
-        # After insert
-        after_insert_function_name = :"after_insert_#{factory_name}"
+      if not is_nil(repo) and opts[:insert!] != false do
+        # `:after_insert` hook
+        after_insert_handler =
+          case opts[:after_insert] do
+            nil -> &FactoryMan.default_after_insert_handler/1
+            after_insert_handler -> after_insert_handler
+          end
 
-        def unquote(after_insert_function_name)(struct) do
-          # Reset all assoc fields so that the struct matches a DB query result
-          Ecto.reset_fields(struct, struct.__struct__.__schema__(:associations))
-        end
-
-        # Insert!
+        # Insert
         insert_function_name = :"insert_#{factory_name}!"
 
         def unquote(insert_function_name)(params \\ %{}) do
           params
           |> unquote(build_function_name)()
           |> unquote(repo).insert!()
-          |> unquote(after_insert_function_name)()
+          # Handle `:after_insert` hook
+          |> then(unquote(after_insert_handler))
         end
 
-        defoverridable [
-          {build_function_name, 1},
-          {insert_function_name, 1}
-          # {insert_function_name, 1},
-          # {after_insert_function_name, 1}
-        ]
+        defoverridable [{build_function_name, 1}, {insert_function_name, 1}]
       else
         defoverridable [{build_function_name, 1}]
       end
     end
   end
+
+  @doc "The default `:after_insert` handler. Returns the unmodified struct."
+  def default_after_insert_handler(%_{} = inserted_struct), do: inserted_struct
 end
