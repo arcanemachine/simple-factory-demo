@@ -11,6 +11,8 @@ defmodule FactoryMan do
   FIXME
   ```
 
+  > FIXME: Add instructions for adding it to test/non-test environments
+
   - If using `FactoryMan.Sequence`, add the following line to `test/test_helper.exs`:
 
   `your_project/test/test_helper.exs`
@@ -67,7 +69,7 @@ defmodule FactoryMan do
   %YourProject.Users.User{id: 1, username: "some_user"}
 
   iex> inserted_profile_1 = YourProject.Factories.Users.insert_profile!()
-  %YourProject.Users.Profile{id: 1, user: %YourProject.Users.User{id: 2}}
+  %YourProject.Users.Profile{id: 1, user: %YourProject.Users.User{id: 2, username: "user-12345"}}
 
   iex> inserted_profile_2 = YourProject.Factories.Users.insert_profile!(%{user: inserted_user})
   %YourProject.Users.Profile{id: 1, user: %YourProject.Users.User{id: 1, username: "some_user"}}
