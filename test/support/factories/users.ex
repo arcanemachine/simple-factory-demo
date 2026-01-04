@@ -1,6 +1,7 @@
 defmodule SimpleFactoryDemo.Factories.Users do
   use FactoryMan, extends: SimpleFactoryDemo.Factory
 
+  alias SimpleFactoryDemo.Authors.Author
   alias SimpleFactoryDemo.Users.User
 
   factory(
@@ -9,7 +10,23 @@ defmodule SimpleFactoryDemo.Factories.Users do
       def build_user(params \\ %{}) do
         %User{
           id: params[:id],
-          username: params[:username] || "alice-#{System.os_time()}"
+          username: Map.get(params, :username, "alice-#{System.os_time()}"),
+          author: params[:author]
+        }
+      end
+  )
+
+  factory(
+    name: :author,
+    build:
+      def build_author(params \\ %{}) do
+        %Author{
+          # Assocs
+          user: params[:user] || build_user(),
+
+          # Fields
+          id: params[:id],
+          name: Map.get(params, :name, "Alice")
         }
       end
   )

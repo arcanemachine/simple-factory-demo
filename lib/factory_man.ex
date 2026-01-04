@@ -29,7 +29,7 @@ defmodule FactoryMan do
 
   defmacro __using__(opts \\ []) do
     quote do
-      # Import factory macro from current module
+      # Import factory macro
       import unquote(__MODULE__)
 
       factory_opts =
@@ -71,13 +71,13 @@ defmodule FactoryMan do
       {build_function_name, _build_function_arity} = Macro.escape(opts[:build])
 
       if not is_nil(repo) do
-        # # After insert
-        # after_insert_function_name = :"after_insert_#{factory_name}"
+        # After insert
+        after_insert_function_name = :"after_insert_#{factory_name}"
 
-        # def unquote(after_insert_function_name)(struct) do
-        #   # Reset all fields so that the struct matches a DB query result
-        #   Ecto.reset_fields(unquote(struct), unquote(struct).__struct__(:associations))
-        # end
+        def unquote(after_insert_function_name)(struct) do
+          # Reset all assoc fields so that the struct matches a DB query result
+          Ecto.reset_fields(struct, struct.__struct__.__schema__(:associations))
+        end
 
         # Insert!
         insert_function_name = :"insert_#{factory_name}!"
@@ -86,17 +86,15 @@ defmodule FactoryMan do
           params
           |> unquote(build_function_name)()
           |> unquote(repo).insert!()
-
-          # |> unquote(after_insert_function_name)()
+          |> unquote(after_insert_function_name)()
         end
 
-        defoverridable [{build_function_name, 1}, {insert_function_name, 1}]
-
-        # defoverridable [
-        #   {build_function_name, 1},
-        #   {insert_function_name, 1},
-        #   {after_insert_function_name, 1}
-        # ]
+        defoverridable [
+          {build_function_name, 1},
+          {insert_function_name, 1}
+          # {insert_function_name, 1},
+          # {after_insert_function_name, 1}
+        ]
       else
         defoverridable [{build_function_name, 1}]
       end
