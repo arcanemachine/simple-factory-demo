@@ -208,8 +208,8 @@ defmodule FactoryMan do
       Module.register_attribute(__MODULE__, :factory_opts, persist: true)
       Module.put_attribute(__MODULE__, :factory_opts, factory_opts)
 
-      @doc "A debug helper function that can show all the options used in this factory module."
-      def _factory_opts, do: @factory_opts
+      # @doc "A debug helper function that can show all the options used in this factory module."
+      # def _factory_opts, do: @factory_opts
     end
   end
 
@@ -236,22 +236,33 @@ defmodule FactoryMan do
           KeyError -> raise KeyError, message: "factory options must have a `:name` item"
         end
 
-      @doc "A debug helper function that shows all the options used in this factory."
-      def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-        do: unquote(Keyword.merge(factory_opts, opts))
+      # @doc "A debug helper function that shows all the options used in this factory."
+      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
+      #   do: unquote(Keyword.merge(factory_opts, opts))
 
       hooks = opts[:hooks] || []
       repo = opts[:repo]
 
       # Build function
-      build_function_name =
-        cond do
-          is_nil(opts[:build]) ->
-            raise "the `:build` option must be a function (e.g. `def build_#{factory_name}(params \\ %{}) do...end`)"
+      public_build_function_ast =
+        {:def, meta, [{public_build_function_name, context, args}, [do: body]]} =
+        opts[:build]
 
-          true ->
-            Macro.escape(opts[:build]) |> elem(0)
-        end
+      private_build_function_name = :"_#{public_build_function_name}_without_hooks"
+
+      private_build_function_ast =
+        {:def, meta, [{private_build_function_name, context, args}, [do: body]]}
+
+      # Generate private build function (no hooks)
+      Code.eval_quoted(private_build_function_ast, [], __ENV__)
+
+      # Generate public build function (with hooks)
+      def unquote(public_build_function_name)(params \\ %{}) do
+        params
+        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+        |> unquote(private_build_function_name)()
+        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
+      end
 
       if not is_nil(repo) and opts[:insert?] != false do
         # Insert function
@@ -259,14 +270,11 @@ defmodule FactoryMan do
 
         def unquote(insert_function_name)(params \\ %{}) do
           params
-          |> unquote(build_function_name)()
+          |> unquote(public_build_function_name)()
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
           |> unquote(repo).insert!()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
         end
-
-        defoverridable [{build_function_name, 1}, {insert_function_name, 1}]
-      else
-        defoverridable [{build_function_name, 1}]
       end
     end
   end
@@ -277,23 +285,23 @@ defmodule FactoryMan do
 
   ## Examples
 
-      iex> FactoryMan.default_hook_handler(123)
+      iex> FactoryMan.fallback_hook_handler(123)
       123
   """
-  def default_hook_handler(value), do: value
+  def fallback_hook_handler(value), do: value
 
   @doc """
-  Get the configured handler for a `hook`, or fall back to `&FactoryMan.default_hook_handler/0`.
+  Get the configured handler for a `hook`, or fall back to `&FactoryMan.fallback_hook_handler/0`.
 
   ## Examples
 
       iex> hooks = [after_insert: &YourProject.Factories.Users.user_after_insert_handler/1]
 
       iex> FactoryMan.get_hook_handler(hooks, :before_build)
-      &FactoryMan.default_hook_handler/0
+      &FactoryMan.fallback_hook_handler/0
 
       iex> FactoryMan.get_hook_handler(hooks, :after_insert)
       &YourProject.Factories.Users.user_after_insert_handler/1
   """
-  def get_hook_handler(hooks, hook), do: hooks[hook] || (&FactoryMan.default_hook_handler/1)
+  def get_hook_handler(hooks, hook), do: hooks[hook] || (&FactoryMan.fallback_hook_handler/1)
 end
