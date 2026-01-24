@@ -89,4 +89,30 @@ defmodule FactoriesTest do
     assert loaded_post.author.user.username == "test_user"
     assert hd(loaded_post.tags).name == "nested"
   end
+
+  test "after_insert hook resets associations to NotLoaded" do
+    author = Authors.insert_author!()
+
+    assert author.id
+    assert author.user_id
+    refute Ecto.assoc_loaded?(author.user)
+    refute Ecto.assoc_loaded?(author.posts)
+  end
+
+  test "build does not trigger after_insert hook, keeps associations loaded" do
+    author = Authors.build_author()
+
+    assert is_nil(author.id)
+    assert %SimpleFactoryDemo.Users.User{} = author.user
+    assert Ecto.assoc_loaded?(author.user)
+  end
+
+  test "after_insert hook resets nested associations" do
+    post = Posts.insert_post!()
+
+    assert post.id
+    assert post.author_id
+    refute Ecto.assoc_loaded?(post.author)
+    refute Ecto.assoc_loaded?(post.tags)
+  end
 end
