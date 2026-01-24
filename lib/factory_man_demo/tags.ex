@@ -1,8 +1,8 @@
-defmodule SimpleFactoryDemo.Tags do
+defmodule FactoryManDemo.Tags do
   @moduledoc "The Tags context."
 
-  alias SimpleFactoryDemo.Repo
-  alias SimpleFactoryDemo.Tags.Tag
+  alias FactoryManDemo.Repo
+  alias FactoryManDemo.Tags.Tag
 
   def insert_tag(attrs), do: attrs |> Tag.changeset() |> Repo.insert()
 

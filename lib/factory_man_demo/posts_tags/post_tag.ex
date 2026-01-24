@@ -1,10 +1,10 @@
-defmodule SimpleFactoryDemo.PostsTags.PostTag do
+defmodule FactoryManDemo.PostsTags.PostTag do
   @doc "The PostTag schema."
 
   use Ecto.Schema
 
-  alias SimpleFactoryDemo.Posts.Post
-  alias SimpleFactoryDemo.Tags.Tag
+  alias FactoryManDemo.Posts.Post
+  alias FactoryManDemo.Tags.Tag
 
   @primary_key false
   schema "posts_tags" do

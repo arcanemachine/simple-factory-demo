@@ -1,4 +1,4 @@
-defmodule SimpleFactoryDemo.Repo.Migrations.CreateBlogs do
+defmodule FactoryManDemo.Repo.Migrations.CreateBlogs do
   @moduledoc false
 
   use Ecto.Migration

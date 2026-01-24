@@ -20,7 +20,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-simple_factory_demo-*.tar
+factory_man_demo-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/

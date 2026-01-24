@@ -1,12 +1,12 @@
-defmodule SimpleFactoryDemo.Authors.Author do
+defmodule FactoryManDemo.Authors.Author do
   @moduledoc "The Author schema."
 
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  alias SimpleFactoryDemo.Posts.Post
-  alias SimpleFactoryDemo.Users.User
+  alias FactoryManDemo.Posts.Post
+  alias FactoryManDemo.Users.User
 
   schema "authors" do
     field :user_id, :id

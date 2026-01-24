@@ -1,14 +1,14 @@
-# Simple Factory Demo - Instructions for Claude
+# FactoryMan - Instructions for Claude
 
 ## Project Purpose
 
-This is a **demonstration repository for FactoryMan**, an Elixir testing factory library.
+This is the **FactoryMan repository**, an Elixir testing factory library.
 
 **FactoryMan is the product.** The blog schemas (Users, Authors, Posts, Tags) are just showcase examples.
 
 ## What is FactoryMan?
 
-A macro-based testing factory library located in `/workspace/local/projects/simple_factory_demo/lib/factory_man.ex` that:
+A macro-based testing factory library located in `/workspace/local/projects/factory_man/lib/factory_man.ex` that:
 - Generates `build_<name>/1` functions to create test data structs in memory
 - Generates `insert_<name>!/1` functions to build and insert into database (when repo configured)
 - Supports lifecycle hooks: `:before_build`, `:after_build`, `:before_insert`, `:after_insert`
@@ -21,7 +21,7 @@ A macro-based testing factory library located in `/workspace/local/projects/simp
 lib/
   factory_man.ex              # THE MAIN LIBRARY - core macro system
   factory_man/factories.ex    # Alternative DSL for factories
-  simple_factory_demo/        # Example schemas (demo content, not the product)
+  factory_man_demo/           # Example schemas (demo content, not the product)
     users/user.ex
     authors/author.ex
     posts/post.ex
@@ -109,7 +109,7 @@ When running Claude Code in a Docker container with Postgres in a separate conta
 **For persistent tmux sessions (ALWAYS use this approach):**
 ```bash
 /workspace/local/bin/tmux new-session -d -s iex_session \
-  "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && export MIX_ENV=test && cd /workspace/local/projects/simple_factory_demo && iex -S mix'"
+  "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && export MIX_ENV=test && cd /workspace/local/projects/factory_man && iex -S mix'"
 ```
 
 Replace `<postgres_container_ip>` with the IP from Step 1.
@@ -130,7 +130,7 @@ If you see a clean `iex(1)>` prompt with no Postgres errors, you're connected!
 ### Current Configuration (as of 2026-01-24)
 
 - **Postgres Container IP**: `172.16.0.6` (on Docker bridge network) - **MAY BE STALE**
-- **Database**: `simple_factory_demo`
+- **Database**: `factory_man`
 - **Username**: `postgres`
 - **Password**: `your_postgres_password`
 
@@ -145,7 +145,7 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 **Start a session (use the correct Postgres IP from Database Connection Setup above):**
 ```bash
 /workspace/local/bin/tmux new-session -d -s iex_session \
-  "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && export MIX_ENV=test && cd /workspace/local/projects/simple_factory_demo && iex -S mix'"
+  "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && export MIX_ENV=test && cd /workspace/local/projects/factory_man && iex -S mix'"
 ```
 
 **Send commands:**

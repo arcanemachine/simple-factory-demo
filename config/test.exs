@@ -1,4 +1,4 @@
 import Config
 
-config :simple_factory_demo, SimpleFactoryDemo.Repo,
+config :factory_man_demo, FactoryManDemo.Repo,
   pool: Ecto.Adapters.SQL.Sandbox

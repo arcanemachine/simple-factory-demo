@@ -1,7 +1,7 @@
-defmodule SimpleFactoryDemo.Factories.Users do
-  use FactoryMan, extends: SimpleFactoryDemo.Factory
+defmodule FactoryManDemo.Factories.Users do
+  use FactoryMan, extends: FactoryManDemo.Factory
 
-  alias SimpleFactoryDemo.Users.User
+  alias FactoryManDemo.Users.User
 
   factory :user do
     %User{

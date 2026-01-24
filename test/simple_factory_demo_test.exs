@@ -1,8 +1,8 @@
-defmodule SimpleFactoryDemoTest do
+defmodule FactoryManDemoTest do
   use ExUnit.Case
-  doctest SimpleFactoryDemo
+  doctest FactoryManDemo
 
   test "greets the world" do
-    assert SimpleFactoryDemo.hello() == :world
+    assert FactoryManDemo.hello() == :world
   end
 end

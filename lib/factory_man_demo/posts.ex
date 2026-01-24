@@ -1,10 +1,10 @@
-defmodule SimpleFactoryDemo.Posts do
+defmodule FactoryManDemo.Posts do
   @moduledoc "The Posts context."
 
   import Ecto.Query
 
-  alias SimpleFactoryDemo.Posts.Post
-  alias SimpleFactoryDemo.Repo
+  alias FactoryManDemo.Posts.Post
+  alias FactoryManDemo.Repo
 
   @doc "List all Posts by Author ID."
   def list_posts_by_author_id(author_id),

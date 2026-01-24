@@ -1,7 +1,7 @@
-defmodule SimpleFactoryDemo.Factories.Tags do
-  use FactoryMan, extends: SimpleFactoryDemo.Factory
+defmodule FactoryManDemo.Factories.Tags do
+  use FactoryMan, extends: FactoryManDemo.Factory
 
-  alias SimpleFactoryDemo.Tags.Tag
+  alias FactoryManDemo.Tags.Tag
 
   factory :tag do
     %Tag{

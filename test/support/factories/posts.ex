@@ -1,8 +1,8 @@
-defmodule SimpleFactoryDemo.Factories.Posts do
-  use FactoryMan, extends: SimpleFactoryDemo.Factory
+defmodule FactoryManDemo.Factories.Posts do
+  use FactoryMan, extends: FactoryManDemo.Factory
 
-  alias SimpleFactoryDemo.Posts.Post
-  alias SimpleFactoryDemo.Factories.Authors
+  alias FactoryManDemo.Posts.Post
+  alias FactoryManDemo.Factories.Authors
 
   factory :post do
     %Post{

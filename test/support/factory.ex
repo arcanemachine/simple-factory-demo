@@ -1,6 +1,6 @@
-defmodule SimpleFactoryDemo.Factory do
+defmodule FactoryManDemo.Factory do
   use FactoryMan,
-    repo: SimpleFactoryDemo.Repo,
+    repo: FactoryManDemo.Repo,
     hooks: [
       # before_build: &__MODULE__.before_build_handler/1,
       after_insert: &__MODULE__.after_insert_handler/1
