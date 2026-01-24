@@ -130,7 +130,7 @@ If you see a clean `iex(1)>` prompt with no Postgres errors, you're connected!
 ### Current Configuration (as of 2026-01-24)
 
 - **Postgres Container IP**: `172.16.0.6` (on Docker bridge network) - **MAY BE STALE**
-- **Database**: `factory_man`
+- **Database**: `factory_man_demo`
 - **Username**: `postgres`
 - **Password**: `your_postgres_password`
 
