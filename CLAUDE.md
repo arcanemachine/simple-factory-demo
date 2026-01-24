@@ -8,7 +8,7 @@ This is a **demonstration repository for FactoryMan**, an Elixir testing factory
 
 ## What is FactoryMan?
 
-A macro-based testing factory library located in `/workspace/projects/simple_factory_demo/lib/factory_man.ex` that:
+A macro-based testing factory library located in `/workspace/local/projects/simple_factory_demo/lib/factory_man.ex` that:
 - Generates `build_<name>/1` functions to create test data structs in memory
 - Generates `insert_<name>!/1` functions to build and insert into database (when repo configured)
 - Supports lifecycle hooks: `:before_build`, `:after_build`, `:before_insert`, `:after_insert`
@@ -109,7 +109,7 @@ When running Claude Code in a Docker container with Postgres in a separate conta
 **For persistent tmux sessions (ALWAYS use this approach):**
 ```bash
 /workspace/local/bin/tmux new-session -d -s iex_session \
-  "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && export MIX_ENV=test && cd /workspace/projects/simple_factory_demo && iex -S mix'"
+  "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && export MIX_ENV=test && cd /workspace/local/projects/simple_factory_demo && iex -S mix'"
 ```
 
 Replace `<postgres_container_ip>` with the IP from Step 1.
@@ -145,7 +145,7 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 **Start a session (use the correct Postgres IP from Database Connection Setup above):**
 ```bash
 /workspace/local/bin/tmux new-session -d -s iex_session \
-  "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && export MIX_ENV=test && cd /workspace/projects/simple_factory_demo && iex -S mix'"
+  "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && export MIX_ENV=test && cd /workspace/local/projects/simple_factory_demo && iex -S mix'"
 ```
 
 **Send commands:**
