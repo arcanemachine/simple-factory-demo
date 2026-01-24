@@ -18,22 +18,4 @@ defmodule SimpleFactoryDemo.Factories.Users do
       end
   )
 
-  factory(
-    name: :author,
-    build:
-      quote do
-        def build_author(params \\ %{}) do
-          %Author{
-            # Assocs
-            user: params[:user] || build_user(),
-
-            # Fields
-            id: params[:id],
-            name: Map.get(params, :name, "Some author")
-          }
-        end
-      end
-  )
-
-  # Other factories...
 end
