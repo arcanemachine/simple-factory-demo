@@ -7,3 +7,5 @@ config :simple_factory_demo, SimpleFactoryDemo.Repo,
   username: "postgres",
   password: "your_postgres_password",
   hostname: System.get_env("POSTGRES_HOST", "localhost")
+
+import_config "#{config_env()}.exs"
