@@ -189,7 +189,7 @@ defmodule FactoryMan do
   defmacro __using__(opts \\ []) do
     quote do
       # Import factory macro
-      import unquote(__MODULE__), only: [factory: 0, factory: 1]
+      import unquote(__MODULE__), only: [factory: 0, factory: 2]
 
       factory_opts =
         case unquote(opts)[:extends] do
@@ -219,58 +219,38 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro factory(opts) do
-    quote bind_quoted: [opts: opts] do
+  defmacro factory(name, do: body) do
+    build_function_name = :"build_#{name}"
+    private_function_name = :"_#{build_function_name}_without_hooks"
+    insert_function_name = :"insert_#{name}!"
+
+    quote bind_quoted: [
+            name: name,
+            build_function_name: build_function_name,
+            private_function_name: private_function_name,
+            insert_function_name: insert_function_name,
+            body: Macro.escape(body, unquote: true)
+          ] do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
-      opts =
-        factory_opts
-        # Drop keys that do not pertain to individual factories
-        |> Keyword.drop([:extends])
-        |> Keyword.merge(opts)
+      hooks = factory_opts[:hooks] || []
+      repo = factory_opts[:repo]
 
-      factory_name =
-        try do
-          Keyword.fetch!(opts, :name)
-        rescue
-          KeyError -> raise KeyError, message: "factory options must have a `:name` item"
-        end
+      defp unquote(private_function_name)(var!(params)) do
+        unquote(body)
+      end
 
-      # @doc "A debug helper function that shows all the options used in this factory."
-      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-      #   do: unquote(Keyword.merge(factory_opts, opts))
-
-      hooks = opts[:hooks] || []
-      repo = opts[:repo]
-
-      # Build function
-      public_build_function_ast =
-        {:def, meta, [{public_build_function_name, context, args}, [do: body]]} =
-        opts[:build]
-
-      private_build_function_name = :"_#{public_build_function_name}_without_hooks"
-
-      private_build_function_ast =
-        {:def, meta, [{private_build_function_name, context, args}, [do: body]]}
-
-      # Generate private build function (no hooks)
-      Code.eval_quoted(private_build_function_ast, [], __ENV__)
-
-      # Generate public build function (with hooks)
-      def unquote(public_build_function_name)(params \\ %{}) do
+      def unquote(build_function_name)(params \\ %{}) do
         params
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
-        |> unquote(private_build_function_name)()
+        |> unquote(private_function_name)()
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
 
-      if not is_nil(repo) and opts[:insert?] != false do
-        # Insert function
-        insert_function_name = :"insert_#{factory_name}!"
-
+      if not is_nil(repo) do
         def unquote(insert_function_name)(params \\ %{}) do
           params
-          |> unquote(public_build_function_name)()
+          |> unquote(build_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
           |> unquote(repo).insert!()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))

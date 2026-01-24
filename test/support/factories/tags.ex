@@ -3,17 +3,11 @@ defmodule SimpleFactoryDemo.Factories.Tags do
 
   alias SimpleFactoryDemo.Tags.Tag
 
-  factory(
-    name: :tag,
-    build:
-      quote do
-        def build_tag(params \\ %{}) do
-          %Tag{
-            id: params[:id],
-            name: Map.get(params, :name, "sample-tag-#{System.os_time()}"),
-            posts: params[:posts] || []
-          }
-        end
-      end
-  )
+  factory :tag do
+    %Tag{
+      id: params[:id],
+      name: Map.get(params, :name, "sample-tag-#{System.os_time()}"),
+      posts: params[:posts] || []
+    }
+  end
 end

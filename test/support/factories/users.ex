@@ -3,18 +3,12 @@ defmodule SimpleFactoryDemo.Factories.Users do
 
   alias SimpleFactoryDemo.Users.User
 
-  factory(
-    name: :user,
-    build:
-      quote do
-        def build_user(params \\ %{}) do
-          %User{
-            id: params[:id],
-            username: Map.get(params, :username, "user-#{System.os_time()}"),
-            author: params[:author]
-          }
-        end
-      end
-  )
+  factory :user do
+    %User{
+      id: params[:id],
+      username: Map.get(params, :username, "user-#{System.os_time()}"),
+      author: params[:author]
+    }
+  end
 
 end
