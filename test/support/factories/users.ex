@@ -11,7 +11,7 @@ defmodule SimpleFactoryDemo.Factories.Users do
         def build_user(params \\ %{}) do
           %User{
             id: params[:id],
-            username: Map.get(params, :username, "user-#{System.os_time(:second)}"),
+            username: Map.get(params, :username, "user-#{System.os_time()}"),
             author: params[:author]
           }
         end

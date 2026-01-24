@@ -10,7 +10,7 @@ defmodule SimpleFactoryDemo.Factories.Tags do
         def build_tag(params \\ %{}) do
           %Tag{
             id: params[:id],
-            name: Map.get(params, :name, "sample-tag-#{System.os_time(:second)}"),
+            name: Map.get(params, :name, "sample-tag-#{System.os_time()}"),
             posts: params[:posts] || []
           }
         end
