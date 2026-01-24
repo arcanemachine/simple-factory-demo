@@ -109,10 +109,12 @@ When running Claude Code in a Docker container with Postgres in a separate conta
 **For persistent tmux sessions (ALWAYS use this approach):**
 ```bash
 /workspace/local/bin/tmux new-session -d -s iex_session \
-  "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && cd /workspace/projects/simple_factory_demo && iex -S mix'"
+  "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && export MIX_ENV=test && cd /workspace/projects/simple_factory_demo && iex -S mix'"
 ```
 
 Replace `<postgres_container_ip>` with the IP from Step 1.
+
+**IMPORTANT:** Always set `MIX_ENV=test` when working with factories, as they are defined in the test support files.
 
 #### Step 3: Verify Connection
 
@@ -143,12 +145,21 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 **Start a session (use the correct Postgres IP from Database Connection Setup above):**
 ```bash
 /workspace/local/bin/tmux new-session -d -s iex_session \
-  "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && cd /workspace/projects/simple_factory_demo && iex -S mix'"
+  "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && export MIX_ENV=test && cd /workspace/projects/simple_factory_demo && iex -S mix'"
 ```
 
 **Send commands:**
 ```bash
 /workspace/local/bin/tmux send-keys -t iex_session 'Your.Elixir.Code' C-m
+```
+
+**IMPORTANT - Handling special characters:** When sending commands with `!` or other special characters, use double quotes on the outside and escape inner quotes:
+```bash
+# Good - works correctly
+/workspace/local/bin/tmux send-keys -t iex_session "Users.insert_user!(%{username: \"alice\"})" C-m
+
+# Bad - will add backslash before !
+/workspace/local/bin/tmux send-keys -t iex_session 'Users.insert_user!(%{username: "alice"})' C-m
 ```
 
 **View output:**
@@ -163,10 +174,12 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 /workspace/local/bin/tmux list-sessions
 ```
 
-**Kill session:**
+**Kill session (rarely needed):**
 ```bash
 /workspace/local/bin/tmux kill-session -t iex_session
 ```
+
+**IMPORTANT:** You don't need to kill and restart the tmux IEx session between operations. Keep the same session running - the user can monitor it and track what you're doing. Only restart if there's a specific problem (crashed session, need to change environment variables, etc.).
 
 ## Important Notes for Claude
 
