@@ -68,7 +68,7 @@ These schemas exist to showcase how FactoryMan handles:
 Before running any Elixir/IEx commands, ensure the Elixir environment is set up:
 
 1. **Check if ready:** `test -f ~/.asdf_elixir_ready`
-2. **If check fails:** Run `/workspace/scripts/setup.sh` from the workspace root
+2. **If check fails:** Run `/workspace/local/scripts/setup.sh` from the workspace root
 3. **Always use:** `bash -l -c 'your command'` wrapper for all Elixir commands
 
 (See `/workspace/.claude/CLAUDE.md` for complete Elixir environment setup details)
