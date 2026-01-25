@@ -231,10 +231,8 @@ defmodule FactoryMan do
   #   end
   # end
 
-  defmacro factory(factory_name, opts) do
-    quote do
-      opts = unquote(opts)
-
+  defmacro factory(opts) do
+    quote bind_quoted: [opts: opts] do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
       opts =
@@ -242,6 +240,13 @@ defmodule FactoryMan do
         # Drop keys that do not pertain to individual factories
         |> Keyword.drop([:extends])
         |> Keyword.merge(opts)
+
+      factory_name =
+        try do
+          Keyword.fetch!(opts, :name)
+        rescue
+          KeyError -> raise KeyError, message: "factory options must have a `:name` item"
+        end
 
       # @doc "A debug helper function that shows all the options used in this factory."
       # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
@@ -251,11 +256,9 @@ defmodule FactoryMan do
       repo = opts[:repo]
 
       # Build function
-      public_build_function_name = :"build_#{factory_name}"
-
       public_build_function_ast =
         {:def, meta, [{public_build_function_name, context, args}, [do: body]]} =
-        unquote(opts[:do])
+        opts[:build]
 
       private_build_function_name = :"_#{public_build_function_name}_without_hooks"
 
