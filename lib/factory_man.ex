@@ -208,31 +208,20 @@ defmodule FactoryMan do
       Module.register_attribute(__MODULE__, :factory_opts, persist: true)
       Module.put_attribute(__MODULE__, :factory_opts, factory_opts)
 
-      # @doc "A debug helper function that can show all the options used in this factory module."
-      # def _factory_opts, do: @factory_opts
+      @doc "A debug helper function that can show all the options used in this factory module."
+      def _factory_opts, do: @factory_opts
     end
   end
 
-  # defmacro factory(factory_name, params \\ %{}, opts) do
-  #   {do_block, _opts} = Keyword.pop(opts, :do)
+  defmacro factory(factory_name, opts) do
+    [{:do, do_body} | reversed_opts] = opts |> Enum.reverse()
+    opts = Enum.reverse(reversed_opts)
 
-  #   # quote do
-  #   #   factory(factory_name, build: unquote(do_block))
-  #   # end
-
-  #   build_function_name = :"build_#{factory_name}"
-
-  #   quote do
-  #
-
-  #     def unquote(build_function_name)(var!(params) \\ unquote(params)) do
-  #       unquote(do_block)
-  #     end
-  #   end
-  # end
-
-  defmacro factory(opts) do
-    quote bind_quoted: [opts: opts] do
+    quote bind_quoted: [
+            factory_name: factory_name,
+            opts: opts,
+            do_body: Macro.escape(do_body, unquote: true)
+          ] do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
       opts =
@@ -241,38 +230,21 @@ defmodule FactoryMan do
         |> Keyword.drop([:extends])
         |> Keyword.merge(opts)
 
-      factory_name =
-        try do
-          Keyword.fetch!(opts, :name)
-        rescue
-          KeyError -> raise KeyError, message: "factory options must have a `:name` item"
-        end
-
-      # @doc "A debug helper function that shows all the options used in this factory."
-      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-      #   do: unquote(Keyword.merge(factory_opts, opts))
+      @doc "A debug helper function that shows all the options used in this factory."
+      def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
+        do: unquote(Keyword.merge(factory_opts, opts))
 
       hooks = opts[:hooks] || []
       repo = opts[:repo]
 
-      # Build function
-      public_build_function_ast =
-        {:def, meta, [{public_build_function_name, context, args}, [do: body]]} =
-        opts[:build]
-
-      private_build_function_name = :"_#{public_build_function_name}_without_hooks"
-
-      private_build_function_ast =
-        {:def, meta, [{private_build_function_name, context, args}, [do: body]]}
-
-      # Generate private build function (no hooks)
-      Code.eval_quoted(private_build_function_ast, [], __ENV__)
-
       # Generate public build function (with hooks)
-      def unquote(public_build_function_name)(params \\ %{}) do
-        params
-        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
-        |> unquote(private_build_function_name)()
+      build_function_name = :"build_#{factory_name}"
+
+      def unquote(build_function_name)(params \\ %{}) do
+        var!(params) =
+          params |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+
+        unquote(do_body)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
 
@@ -282,7 +254,7 @@ defmodule FactoryMan do
 
         def unquote(insert_function_name)(params \\ %{}) do
           params
-          |> unquote(public_build_function_name)()
+          |> unquote(build_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
           |> unquote(repo).insert!()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))

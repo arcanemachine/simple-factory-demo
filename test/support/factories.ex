@@ -1,6 +1,6 @@
 defmodule FactoryManDemo.Factories do
   # use FactoryMan
-  use FactoryMan, extends: FactoryManDemo.FactoryMan
+  use FactoryMan, extends: FactoryManDemo.Factory
 
   # alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
@@ -14,15 +14,11 @@ defmodule FactoryManDemo.Factories do
   # end
 
   factory :user do
-    quote do
-      def build_user(params \\ %{}) do
-        %User{
-          id: params[:id],
-          username: Map.get(params, :username, "user-#{System.os_time()}"),
-          author: params[:author]
-        }
-      end
-    end
+    %User{
+      id: params[:id],
+      username: Map.get(params, :username, "user-#{System.os_time()}"),
+      author: params[:author]
+    }
   end
 
   # factory :user do
