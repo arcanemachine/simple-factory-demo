@@ -181,24 +181,41 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 
 **IMPORTANT:** You don't need to kill and restart the tmux IEx session between operations. Keep the same session running - the user can monitor it and track what you're doing. Only restart if there's a specific problem (crashed session, need to change environment variables, etc.).
 
-## Macro Implementation (`lib/factory_man.ex:222-260`)
+## Macro Implementation (`lib/factory_man.ex:222-285`)
 
-**Current API:** `factory(name, do: body)` - single do block
+**API:** `factory(name, do: block)` - supports single expression OR multi-block syntax
 
 **How it works:**
-- Escapes body AST with `Macro.escape(body, unquote: true)`
-- Injects `var!(params)` for parameter access in body
+- Parses block to extract `build do` and `hooks do` sections
+- Backwards compatible: single expression treated as build block
+- Escapes build body AST with `Macro.escape(body, unquote: true)`
+- Merges factory-level hooks with module-level hooks (factory takes precedence)
+- Injects `var!(params)` for parameter access (params is ALWAYS a map)
 - Generates: `build_{name}/1`, `insert_{name}!/1`, `_build_{name}_without_hooks/1` (private)
 
 **Hook flow:** before_build → body → after_build → repo.insert! → before_insert → after_insert
 
-**Example:**
+**Old syntax (still works):**
 ```elixir
 factory :user do
   %User{username: Map.get(params, :username, "default")}
 end
-# Generates: Users.build_user/1, Users.insert_user!/1
 ```
+
+**New multi-block syntax:**
+```elixir
+factory :user do
+  build do
+    %User{username: Map.get(params, :username, "default")}
+  end
+
+  hooks do
+    [after_build: fn user -> %{user | username: String.upcase(user.username)} end]
+  end
+end
+```
+
+**Usage:** `FactoryManDemo.Factories.Users.build_user(%{username: "alice"})`
 
 ## Important Notes for Claude
 
@@ -208,4 +225,7 @@ end
 - If asked to work on "the project", clarify whether they mean FactoryMan library or the demo schemas
 - Always use tmux for interactive IEx sessions
 - **ALWAYS use `MIX_ENV=test` for factory work** - factories are in `test/support/`
+- **BEFORE code changes/tests: Follow "Step 1: Get the Current Postgres Container IP" procedure above to verify Postgres is running**
+- **Testing factories: Use :user factory (FactoryManDemo.Factories.Users.build_user/1) - it's the root factory that others depend on**
+- **Don't create new factories - only work with existing ones**
 - See `.claude/code-quality-improvements.md` for detailed analysis from previous sessions

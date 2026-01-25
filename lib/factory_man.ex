@@ -219,7 +219,9 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro factory(name, do: body) do
+  defmacro factory(name, do: block) do
+    {build_body, factory_hooks} = extract_factory_blocks(block)
+
     build_function_name = :"build_#{name}"
     private_function_name = :"_#{build_function_name}_without_hooks"
     insert_function_name = :"insert_#{name}!"
@@ -229,15 +231,18 @@ defmodule FactoryMan do
             build_function_name: build_function_name,
             private_function_name: private_function_name,
             insert_function_name: insert_function_name,
-            body: Macro.escape(body, unquote: true)
+            build_body: Macro.escape(build_body, unquote: true),
+            factory_hooks: Macro.escape(factory_hooks, unquote: true)
           ] do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
-      hooks = factory_opts[:hooks] || []
+      module_hooks = factory_opts[:hooks] || []
+      # Merge factory-level hooks with module-level hooks, factory takes precedence
+      hooks = Keyword.merge(module_hooks, factory_hooks || [])
       repo = factory_opts[:repo]
 
       defp unquote(private_function_name)(var!(params)) do
-        unquote(body)
+        unquote(build_body)
       end
 
       def unquote(build_function_name)(params \\ %{}) do
@@ -257,6 +262,26 @@ defmodule FactoryMan do
         end
       end
     end
+  end
+
+  # Helper function to extract build and hooks blocks from factory definition
+  defp extract_factory_blocks({:__block__, _, expressions}) do
+    # Multiple expressions in the block - look for build/hooks
+    build_body = find_block(expressions, :build)
+    hooks_body = find_block(expressions, :hooks)
+    {build_body, hooks_body}
+  end
+
+  defp extract_factory_blocks(single_expression) do
+    # Single expression - treat as build block for backwards compatibility
+    {single_expression, nil}
+  end
+
+  defp find_block(expressions, block_name) do
+    Enum.find_value(expressions, fn
+      {^block_name, _, [[do: body]]} -> body
+      _ -> nil
+    end)
   end
 
   @doc """
