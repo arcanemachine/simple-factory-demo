@@ -107,7 +107,7 @@ When running Claude Code in a Docker container with Postgres in a separate conta
 
 **For persistent tmux sessions (ALWAYS use this approach):**
 ```bash
-/workspace/local/bin/tmux new-session -d -s iex_session \
+tmux new-session -d -s iex_session \
   "bash -l -c 'export POSTGRES_HOST=<postgres_container_ip> && export MIX_ENV=test && cd /workspace/local/projects/factory_man && iex -S mix'"
 ```
 
@@ -119,7 +119,7 @@ Replace `<postgres_container_ip>` with the IP from Step 1.
 
 Wait 5-8 seconds for IEx to start, then check for connection errors:
 ```bash
-/workspace/local/bin/tmux capture-pane -t iex_session -p | tail -n 20
+tmux capture-pane -t iex_session -p | tail -n 20
 ```
 
 If you see `connection refused` or `host unreachable` errors, the IP is wrong. Go back to Step 1.
@@ -139,43 +139,43 @@ If you see a clean `iex(1)>` prompt with no Postgres errors, you're connected!
 
 ### Using tmux for Interactive Sessions
 
-The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux for persistent IEx sessions** - don't try to run IEx commands directly with bash piping.
+The workspace includes tmux at `tmux`. **Always use tmux for persistent IEx sessions** - don't try to run IEx commands directly with bash piping.
 
 **Start a session (use the correct Postgres IP from Database Connection Setup above):**
 ```bash
-/workspace/local/bin/tmux new-session -d -s iex_session \
+tmux new-session -d -s iex_session \
   "bash -l -c 'export POSTGRES_HOST=<postgres_ip> && export MIX_ENV=test && cd /workspace/local/projects/factory_man && iex -S mix'"
 ```
 
 **Send commands:**
 ```bash
-/workspace/local/bin/tmux send-keys -t iex_session 'Your.Elixir.Code' C-m
+tmux send-keys -t iex_session 'Your.Elixir.Code' C-m
 ```
 
 **IMPORTANT - Handling special characters:** When sending commands with `!` or other special characters, use double quotes on the outside and escape inner quotes:
 ```bash
 # Good - works correctly
-/workspace/local/bin/tmux send-keys -t iex_session "Users.insert_user!(%{username: \"alice\"})" C-m
+tmux send-keys -t iex_session "Users.insert_user!(%{username: \"alice\"})" C-m
 
 # Bad - will add backslash before !
-/workspace/local/bin/tmux send-keys -t iex_session 'Users.insert_user!(%{username: "alice"})' C-m
+tmux send-keys -t iex_session 'Users.insert_user!(%{username: "alice"})' C-m
 ```
 
 **View output:**
 ```bash
-/workspace/local/bin/tmux capture-pane -t iex_session -p | tail -n 20
+tmux capture-pane -t iex_session -p | tail -n 20
 # Or capture more history:
-/workspace/local/bin/tmux capture-pane -t iex_session -p -S -50 | tail -n 50
+tmux capture-pane -t iex_session -p -S -50 | tail -n 50
 ```
 
 **List sessions:**
 ```bash
-/workspace/local/bin/tmux list-sessions
+tmux list-sessions
 ```
 
 **Kill session (rarely needed):**
 ```bash
-/workspace/local/bin/tmux kill-session -t iex_session
+tmux kill-session -t iex_session
 ```
 
 **IMPORTANT:** You don't need to kill and restart the tmux IEx session between operations. Keep the same session running - the user can monitor it and track what you're doing. Only restart if there's a specific problem (crashed session, need to change environment variables, etc.).
@@ -218,6 +218,7 @@ end
 
 ## Important Notes for Claude
 
+- **The module documentation in `lib/factory_man.ex` may be out of date** - the API is actively being changed
 - This is NOT a blog application - it's a factory library demonstration
 - Don't "improve" the demo schemas unless specifically asked - they're examples
 - The interesting code is in `lib/factory_man.ex` and `test/support/`
