@@ -1,9 +1,9 @@
-defmodule SimpleFactoryDemo.Tags.Tag do
+defmodule FactoryManDemo.Tags.Tag do
   @moduledoc "The Tag schema."
 
   use Ecto.Schema
   import Ecto.Changeset
-  alias SimpleFactoryDemo.Posts.Post
+  alias FactoryManDemo.Posts.Post
 
   schema "tags" do
     field :name, :string

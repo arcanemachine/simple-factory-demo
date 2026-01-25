@@ -1,4 +1,4 @@
-defmodule SimpleFactoryDemo.Application do
+defmodule FactoryManDemo.Application do
   @moduledoc false
 
   use Application
@@ -6,10 +6,10 @@ defmodule SimpleFactoryDemo.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      SimpleFactoryDemo.Repo
+      FactoryManDemo.Repo
     ]
 
-    opts = [strategy: :one_for_one, name: SimpleFactoryDemo.Supervisor]
+    opts = [strategy: :one_for_one, name: FactoryManDemo.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end

@@ -1,8 +1,8 @@
-defmodule SimpleFactoryDemo.Users do
+defmodule FactoryManDemo.Users do
   @moduledoc "The Users context."
 
-  alias SimpleFactoryDemo.Users.User
-  alias SimpleFactoryDemo.Repo
+  alias FactoryManDemo.Users.User
+  alias FactoryManDemo.Repo
 
   def insert_user(attrs), do: attrs |> User.changeset() |> Repo.insert()
 

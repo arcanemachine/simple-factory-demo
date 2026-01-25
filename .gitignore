@@ -24,3 +24,6 @@ simple_factory_demo-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+## Custom rules
+.lexical

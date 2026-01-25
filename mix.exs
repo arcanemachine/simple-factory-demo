@@ -1,9 +1,9 @@
-defmodule SimpleFactoryDemo.MixProject do
+defmodule FactoryManDemo.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :simple_factory_demo,
+      app: :factory_man_demo,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -16,7 +16,7 @@ defmodule SimpleFactoryDemo.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {SimpleFactoryDemo.Application, []}
+      mod: {FactoryManDemo.Application, []}
     ]
   end
 

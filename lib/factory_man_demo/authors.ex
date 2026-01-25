@@ -1,8 +1,8 @@
-defmodule SimpleFactoryDemo.Authors do
+defmodule FactoryManDemo.Authors do
   @moduledoc "The Authors context."
 
-  alias SimpleFactoryDemo.Authors.Author
-  alias SimpleFactoryDemo.Repo
+  alias FactoryManDemo.Authors.Author
+  alias FactoryManDemo.Repo
 
   def insert_author(attrs), do: attrs |> Author.changeset() |> Repo.insert()
 

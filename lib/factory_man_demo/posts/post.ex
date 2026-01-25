@@ -1,12 +1,12 @@
-defmodule SimpleFactoryDemo.Posts.Post do
+defmodule FactoryManDemo.Posts.Post do
   @moduledoc "The Post schema."
 
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  alias SimpleFactoryDemo.Authors.Author
-  alias SimpleFactoryDemo.Tags.Tag
+  alias FactoryManDemo.Authors.Author
+  alias FactoryManDemo.Tags.Tag
 
   schema "posts" do
     field :author_id, :id

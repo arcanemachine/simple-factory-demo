@@ -1,6 +1,6 @@
-defmodule SimpleFactoryDemo do
+defmodule FactoryManDemo do
   @moduledoc """
-  Documentation for `SimpleFactoryDemo`.
+  Documentation for `FactoryManDemo`.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule SimpleFactoryDemo do
 
   ## Examples
 
-      iex> SimpleFactoryDemo.hello()
+      iex> FactoryManDemo.hello()
       :world
 
   """

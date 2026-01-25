@@ -1,9 +1,9 @@
-defmodule SimpleFactoryDemo.Users.User do
+defmodule FactoryManDemo.Users.User do
   @moduledoc "The User schema."
 
   use Ecto.Schema
   import Ecto.Changeset
-  alias SimpleFactoryDemo.Authors.Author
+  alias FactoryManDemo.Authors.Author
 
   schema "users" do
     field :username, :string

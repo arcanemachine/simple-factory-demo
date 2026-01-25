@@ -1,9 +1,9 @@
 import Config
 
-config :simple_factory_demo, ecto_repos: [SimpleFactoryDemo.Repo]
+config :factory_man_demo, ecto_repos: [FactoryManDemo.Repo]
 
-config :simple_factory_demo, SimpleFactoryDemo.Repo,
-  database: "simple_factory_demo",
+config :factory_man_demo, FactoryManDemo.Repo,
+  database: "factory_man_demo",
   username: "postgres",
   password: "your_postgres_password",
-  hostname: "localhost"
+  hostname: System.get_env("POSTGRES_HOST", "localhost")
