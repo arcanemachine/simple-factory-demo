@@ -237,9 +237,38 @@ defmodule FactoryMan do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
       module_hooks = factory_opts[:hooks] || []
-      # Merge factory-level hooks with module-level hooks, factory takes precedence
-      hooks = Keyword.merge(module_hooks, factory_hooks || [])
       repo = factory_opts[:repo]
+
+      # Compose hooks: if factory hook exists, wrap it to provide base hook access
+      hooks =
+        Enum.map([:before_build, :after_build, :before_insert, :after_insert], fn hook_name ->
+          base_hook = FactoryMan.get_hook_handler(module_hooks, hook_name)
+          factory_hook = factory_hooks && factory_hooks[hook_name]
+
+          composed_hook =
+            if factory_hook do
+              # Factory hook exists - check its arity
+              case :erlang.fun_info(factory_hook, :arity) do
+                {:arity, 1} ->
+                  # Single argument - use as-is (backwards compatible)
+                  factory_hook
+
+                {:arity, 2} ->
+                  # Two arguments - wrap to provide base_hook as second arg
+                  fn value -> factory_hook.(value, base_hook) end
+
+                _ ->
+                  # Unexpected arity - use as-is and let it fail naturally
+                  factory_hook
+              end
+            else
+              # No factory hook - use base hook
+              base_hook
+            end
+
+          {hook_name, composed_hook}
+        end)
+        |> Enum.into([])
 
       defp unquote(private_function_name)(var!(params)) do
         unquote(build_body)

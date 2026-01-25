@@ -14,8 +14,10 @@ defmodule FactoryManDemo.Factories.Users do
 
     hooks do
       [
-        after_build: fn user ->
-          # Custom hook: upcase the username
+        after_build: fn user, base_hook ->
+          # Call base hook first (module-level hook)
+          user = base_hook.(user)
+          # Then apply factory-specific logic
           %{user | username: String.upcase(user.username)}
         end
       ]
