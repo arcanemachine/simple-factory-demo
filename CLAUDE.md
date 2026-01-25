@@ -188,4 +188,5 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 - The interesting code is in `lib/factory_man.ex` and `test/support/`
 - If asked to work on "the project", clarify whether they mean FactoryMan library or the demo schemas
 - Always use tmux for interactive IEx sessions
+- **ALWAYS use `MIX_ENV=test` for factory work** - factories are in `test/support/`
 - See `.claude/code-quality-improvements.md` for detailed analysis from previous sessions
