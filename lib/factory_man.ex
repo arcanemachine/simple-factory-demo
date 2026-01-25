@@ -189,7 +189,7 @@ defmodule FactoryMan do
   defmacro __using__(opts \\ []) do
     quote do
       # Import factory macro
-      import unquote(__MODULE__), only: [factory: 0, factory: 1]
+      import unquote(__MODULE__), only: [factory: 2]
 
       factory_opts =
         case unquote(opts)[:extends] do
@@ -213,14 +213,14 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro factory() do
+  defmacro factory(factory_name, do: do_block) do
     quote do
-      raise "factory options must have a `:name` item"
+      factory(unquote(factory_name), build: unquote(do_block))
     end
   end
 
-  defmacro factory(opts) do
-    quote bind_quoted: [opts: opts] do
+  defmacro factory(factory_name, opts) do
+    quote bind_quoted: [factory_name: factory_name, opts: opts] do
       factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
 
       opts =
@@ -229,12 +229,12 @@ defmodule FactoryMan do
         |> Keyword.drop([:extends])
         |> Keyword.merge(opts)
 
-      factory_name =
-        try do
-          Keyword.fetch!(opts, :name)
-        rescue
-          KeyError -> raise KeyError, message: "factory options must have a `:name` item"
-        end
+      # factory_name =
+      #   try do
+      #     Keyword.fetch!(opts, :name)
+      #   rescue
+      #     KeyError -> raise KeyError, message: "factory options must have a `:name` item"
+      #   end
 
       # @doc "A debug helper function that shows all the options used in this factory."
       # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
