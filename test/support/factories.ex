@@ -1,7 +1,7 @@
 defmodule FactoryManDemo.Factories do
   use FactoryMan, extends: FactoryManDemo.Factory
 
-  alias FactoryManDemo.Authors.Author
+  # alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
   factory(
