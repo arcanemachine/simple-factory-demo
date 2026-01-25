@@ -191,7 +191,7 @@ defmodule FactoryMan do
       # Import factory macro
       import unquote(__MODULE__), only: [factory: 2]
 
-      factory_opts =
+      parent_factory_opts =
         case unquote(opts)[:extends] do
           nil ->
             # Use opts from current factory only
@@ -199,17 +199,17 @@ defmodule FactoryMan do
 
           extends ->
             # Extend base factory opts
-            parent_opts = extends.__info__(:attributes)[:factory_opts] || []
+            parent_opts = extends.__info__(:attributes)[:parent_factory_opts] || []
 
             Keyword.merge(parent_opts, unquote(opts))
         end
 
       # Put factory module options into a module attribute that can be read by the child factories
-      Module.register_attribute(__MODULE__, :factory_opts, persist: true)
-      Module.put_attribute(__MODULE__, :factory_opts, factory_opts)
+      Module.register_attribute(__MODULE__, :parent_factory_opts, persist: true)
+      Module.put_attribute(__MODULE__, :parent_factory_opts, parent_factory_opts)
 
       @doc "A debug helper function that can show all the options used in this factory module."
-      def _factory_opts, do: @factory_opts
+      def _factory_opts, do: @parent_factory_opts
     end
   end
 
@@ -222,17 +222,18 @@ defmodule FactoryMan do
             opts: opts,
             do_body: Macro.escape(do_body, unquote: true)
           ] do
-      factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
+      parent_factory_opts = Module.get_attribute(__MODULE__, :parent_factory_opts)
 
       opts =
-        factory_opts
+        parent_factory_opts
         # Drop keys that do not pertain to individual factories
         |> Keyword.drop([:extends])
+        # Child factory opts override parent factory opts
         |> Keyword.merge(opts)
 
       @doc "A debug helper function that shows all the options used in this factory."
       def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-        do: unquote(Keyword.merge(factory_opts, opts))
+        do: unquote(Keyword.merge(parent_factory_opts, opts))
 
       hooks = opts[:hooks] || []
       repo = opts[:repo]
@@ -241,10 +242,12 @@ defmodule FactoryMan do
       build_function_name = :"build_#{factory_name}"
 
       def unquote(build_function_name)(input_params \\ %{}) do
-        # Generate the `params` that will be passed to the factory `:do` block
         var!(params) =
           input_params
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+
+        # Suppress unused warning if params not used
+        _ = var!(params)
 
         unquote(do_body)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
@@ -254,11 +257,21 @@ defmodule FactoryMan do
         # Generate the insert function
         insert_function_name = :"insert_#{factory_name}!"
 
-        def unquote(insert_function_name)(params \\ %{}) do
+        def unquote(insert_function_name)(params \\ %{})
+
+        def unquote(insert_function_name)(insert_opts) when is_list(insert_opts) do
+          unquote(insert_function_name)(%{}, insert_opts)
+        end
+
+        def unquote(insert_function_name)(params) do
+          unquote(insert_function_name)(params, [])
+        end
+
+        def unquote(insert_function_name)(params, insert_opts) when is_list(insert_opts) do
           params
           |> unquote(build_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
-          |> unquote(repo).insert!()
+          |> unquote(repo).insert!(insert_opts)
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
         end
       end

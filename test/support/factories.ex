@@ -14,11 +14,13 @@ defmodule FactoryManDemo.Factories do
   # end
 
   factory :user do
-    %User{
-      id: params[:id],
-      username: Map.get(params, :username, "user-#{System.os_time()}"),
-      author: params[:author]
-    }
+    defaults = %{username: "user-#{System.os_time()}"}
+
+    struct(User, Map.merge(defaults, params))
+  end
+
+  factory :old_user do
+    build_user() |> then(&%{username: "old-#{&1.username}"})
   end
 
   # factory :user do
