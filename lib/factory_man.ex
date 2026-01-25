@@ -226,37 +226,37 @@ defmodule FactoryMan do
     private_function_name = :"_#{build_function_name}_without_hooks"
     insert_function_name = :"insert_#{name}!"
 
-    quote bind_quoted: [
-            name: name,
-            build_function_name: build_function_name,
-            private_function_name: private_function_name,
-            insert_function_name: insert_function_name,
-            build_body: Macro.escape(build_body, unquote: true),
-            factory_hooks: Macro.escape(factory_hooks, unquote: true)
-          ] do
-      factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
-
-      module_hooks = factory_opts[:hooks] || []
-      repo = factory_opts[:repo]
-
-      # Compose hooks: if factory hook exists, wrap it to provide base hook access
-      hooks =
-        Enum.map([:before_build, :after_build, :before_insert, :after_insert], fn hook_name ->
-          base_hook = FactoryMan.get_hook_handler(module_hooks, hook_name)
-          factory_hook = factory_hooks && factory_hooks[hook_name]
+    # Generate hook composition code for each hook type
+    hook_composers =
+      for hook_name <- [:before_build, :after_build, :before_insert, :after_insert] do
+        quote do
+          base_hook = FactoryMan.get_hook_handler(unquote(module_hooks_ast), unquote(hook_name))
+          factory_hook = unquote(factory_hooks) && unquote(factory_hooks)[unquote(hook_name)]
 
           composed_hook =
             if factory_hook do
-              # Wrap to detect arity at runtime and provide base_hook if needed
               FactoryMan.compose_hook(factory_hook, base_hook)
             else
-              # No factory hook - use base hook
               base_hook
             end
 
-          {hook_name, composed_hook}
-        end)
-        |> Enum.into([])
+          {unquote(hook_name), composed_hook}
+        end
+      end
+
+    module_hooks_ast =
+      quote do
+        Module.get_attribute(__MODULE__, :factory_opts)[:hooks] || []
+      end
+
+    repo_ast =
+      quote do
+        Module.get_attribute(__MODULE__, :factory_opts)[:repo]
+      end
+
+    quote do
+      # Build hook list at compile time
+      hooks = unquote(hook_composers)
 
       defp unquote(private_function_name)(var!(params)) do
         unquote(build_body)
@@ -268,6 +268,8 @@ defmodule FactoryMan do
         |> unquote(private_function_name)()
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
+
+      repo = unquote(repo_ast)
 
       if not is_nil(repo) do
         def unquote(insert_function_name)(params \\ %{}) do
@@ -326,4 +328,45 @@ defmodule FactoryMan do
       &YourProject.Factories.Users.user_after_insert_handler/1
   """
   def get_hook_handler(hooks, hook), do: hooks[hook] || (&FactoryMan.fallback_hook_handler/1)
+
+  @doc """
+  Compose a factory hook with a base hook, detecting arity at runtime.
+
+  If the factory hook has arity 1, it's called directly (backwards compatible).
+  If it has arity 2, the base hook is passed as the second argument, allowing
+  the factory hook to call it (similar to `super` behavior).
+
+  ## Examples
+
+      # Arity 1 - backwards compatible
+      iex> factory_hook = fn user -> %{user | name: "Modified"} end
+      iex> base_hook = fn user -> user end
+      iex> composed = FactoryMan.compose_hook(factory_hook, base_hook)
+      iex> composed.(%{name: "Original"})
+      %{name: "Modified"}
+
+      # Arity 2 - can call base hook
+      iex> factory_hook = fn user, base -> base.(user) |> Map.put(:extra, true) end
+      iex> base_hook = fn user -> Map.put(user, :processed, true) end
+      iex> composed = FactoryMan.compose_hook(factory_hook, base_hook)
+      iex> composed.(%{name: "Test"})
+      %{name: "Test", processed: true, extra: true}
+  """
+  def compose_hook(factory_hook, base_hook) do
+    fn value ->
+      case :erlang.fun_info(factory_hook, :arity) do
+        {:arity, 1} ->
+          # Single argument - use as-is (backwards compatible)
+          factory_hook.(value)
+
+        {:arity, 2} ->
+          # Two arguments - provide base_hook as second arg
+          factory_hook.(value, base_hook)
+
+        _ ->
+          # Unexpected arity - use as-is and let it fail naturally
+          factory_hook.(value)
+      end
+    end
+  end
 end
