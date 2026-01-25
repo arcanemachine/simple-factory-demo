@@ -247,20 +247,8 @@ defmodule FactoryMan do
 
           composed_hook =
             if factory_hook do
-              # Factory hook exists - check its arity
-              case :erlang.fun_info(factory_hook, :arity) do
-                {:arity, 1} ->
-                  # Single argument - use as-is (backwards compatible)
-                  factory_hook
-
-                {:arity, 2} ->
-                  # Two arguments - wrap to provide base_hook as second arg
-                  fn value -> factory_hook.(value, base_hook) end
-
-                _ ->
-                  # Unexpected arity - use as-is and let it fail naturally
-                  factory_hook
-              end
+              # Wrap to detect arity at runtime and provide base_hook if needed
+              FactoryMan.compose_hook(factory_hook, base_hook)
             else
               # No factory hook - use base hook
               base_hook
