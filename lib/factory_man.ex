@@ -213,84 +213,80 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro factory(factory_name, params \\ %{}, opts) do
-    {do_block, _opts} = Keyword.pop(opts, :do)
+  # defmacro factory(factory_name, params \\ %{}, opts) do
+  #   {do_block, _opts} = Keyword.pop(opts, :do)
 
-    # quote do
-    #   factory(factory_name, build: unquote(do_block))
-    # end
+  #   # quote do
+  #   #   factory(factory_name, build: unquote(do_block))
+  #   # end
 
-    build_function_name = :"build_#{factory_name}"
+  #   build_function_name = :"build_#{factory_name}"
 
+  #   quote do
+  #
+
+  #     def unquote(build_function_name)(var!(params) \\ unquote(params)) do
+  #       unquote(do_block)
+  #     end
+  #   end
+  # end
+
+  defmacro factory(factory_name, opts) do
     quote do
-      def unquote(build_function_name)(var!(params) \\ unquote(params)) do
-        unquote(do_block)
+      opts = unquote(opts)
+
+      factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
+
+      opts =
+        factory_opts
+        # Drop keys that do not pertain to individual factories
+        |> Keyword.drop([:extends])
+        |> Keyword.merge(opts)
+
+      # @doc "A debug helper function that shows all the options used in this factory."
+      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
+      #   do: unquote(Keyword.merge(factory_opts, opts))
+
+      hooks = opts[:hooks] || []
+      repo = opts[:repo]
+
+      # Build function
+      public_build_function_name = :"build_#{factory_name}"
+
+      public_build_function_ast =
+        {:def, meta, [{public_build_function_name, context, args}, [do: body]]} =
+        unquote(opts[:do])
+
+      private_build_function_name = :"_#{public_build_function_name}_without_hooks"
+
+      private_build_function_ast =
+        {:def, meta, [{private_build_function_name, context, args}, [do: body]]}
+
+      # Generate private build function (no hooks)
+      Code.eval_quoted(private_build_function_ast, [], __ENV__)
+
+      # Generate public build function (with hooks)
+      def unquote(public_build_function_name)(params \\ %{}) do
+        params
+        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+        |> unquote(private_build_function_name)()
+        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
+      end
+
+      if not is_nil(repo) and opts[:insert?] != false do
+        # Insert function
+        insert_function_name = :"insert_#{factory_name}!"
+
+        def unquote(insert_function_name)(params \\ %{}) do
+          params
+          |> unquote(public_build_function_name)()
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
+          |> unquote(repo).insert!()
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
+        end
       end
     end
   end
-
-  # defmacro factory(_factory_name, _opts) do
-  #   # build_function_name = :"build_#{factory_name}"
-
-  #   # quote do
-  #   #   def unquote(build_function_name)(var!(params \\ {})) do
-  #   #     
-  #   #   end
-  #   # end
-
-  #   # quote do
-  #   #   opts = unquote(opts)
-
-  #   #   factory_opts = Module.get_attribute(__MODULE__, :factory_opts)
-
-  #   #   opts =
-  #   #     factory_opts
-  #   #     # Drop keys that do not pertain to individual factories
-  #   #     |> Keyword.drop([:extends])
-  #   #     |> Keyword.merge(opts)
-
-  #   #   # @doc "A debug helper function that shows all the options used in this factory."
-  #   #   # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-  #   #   #   do: unquote(Keyword.merge(factory_opts, opts))
-
-  #   #   hooks = opts[:hooks] || []
-  #   #   repo = opts[:repo]
-
-  #   #   # Build function
-  #   #   public_build_function_ast =
-  #   #     {:def, meta, [{public_build_function_name, context, args}, [do: body]]} =
-  #   #     unquote(opts[:do])
-
-  #   #   private_build_function_name = :"_#{public_build_function_name}_without_hooks"
-
-  #   #   private_build_function_ast =
-  #   #     {:def, meta, [{private_build_function_name, context, args}, [do: body]]}
-
-  #   #   # Generate private build function (no hooks)
-  #   #   Code.eval_quoted(private_build_function_ast, [], __ENV__)
-
-  #   #   # Generate public build function (with hooks)
-  #   #   def unquote(public_build_function_name)(params \\ %{}) do
-  #   #     params
-  #   #     |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
-  #   #     |> unquote(private_build_function_name)()
-  #   #     |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
-  #   #   end
-
-  #   #   if not is_nil(repo) and opts[:insert?] != false do
-  #   #     # Insert function
-  #   #     insert_function_name = :"insert_#{factory_name}!"
-
-  #   #     def unquote(insert_function_name)(params \\ %{}) do
-  #   #       params
-  #   #       |> unquote(public_build_function_name)()
-  #   #       |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
-  #   #       |> unquote(repo).insert!()
-  #   #       |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
-  #   #     end
-  #   #   end
-  #   # end
-  # end
 
   @doc """
   The default handler for hooks. This function is a no-op, and simply returns the given `value`

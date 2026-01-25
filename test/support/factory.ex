@@ -1,4 +1,4 @@
-defmodule FactoryManDemo.Factory do
+defmodule FactoryManDemo.FactoryMan do
   use FactoryMan,
     repo: FactoryManDemo.Repo,
     # actions: [:build, :insert],

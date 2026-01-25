@@ -1,17 +1,35 @@
 defmodule FactoryManDemo.Factories do
-  use FactoryMan
-  # use FactoryMan, extends: FactoryManDemo.Factory
+  # use FactoryMan
+  use FactoryMan, extends: FactoryManDemo.FactoryMan
 
   # alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
-  factory user(params \\ %{}) do
-    %User{
-      id: params[:id],
-      username: Map.get(params, :username, "user-#{System.os_time()}"),
-      author: params[:author]
-    }
+  # factory user(params \\ %{}) do
+  #   %User{
+  #     id: params[:id],
+  #     username: Map.get(params, :username, "user-#{System.os_time()}"),
+  #     author: params[:author]
+  #   }
+  # end
+
+  factory :user do
+    quote do
+      def build_user(params \\ %{}) do
+        %User{
+          id: params[:id],
+          username: Map.get(params, :username, "user-#{System.os_time()}"),
+          author: params[:author]
+        }
+      end
+    end
   end
+
+  # factory :user do
+  #   %{hello: params[:world]}
+  # end
+
+  # factory :user, params \\ %{}, actions: [:build] do
 
   # factory :user do
   #   %{hello: params[:world]}
