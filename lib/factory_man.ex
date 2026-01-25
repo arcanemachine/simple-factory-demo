@@ -237,19 +237,21 @@ defmodule FactoryMan do
       hooks = opts[:hooks] || []
       repo = opts[:repo]
 
-      # Generate public build function (with hooks)
+      # Generate the build function
       build_function_name = :"build_#{factory_name}"
 
-      def unquote(build_function_name)(params \\ %{}) do
+      def unquote(build_function_name)(input_params \\ %{}) do
+        # Generate the `params` that will be passed to the factory `:do` block
         var!(params) =
-          params |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+          input_params
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
 
         unquote(do_body)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
 
       if not is_nil(repo) and opts[:insert?] != false do
-        # Insert function
+        # Generate the insert function
         insert_function_name = :"insert_#{factory_name}!"
 
         def unquote(insert_function_name)(params \\ %{}) do
