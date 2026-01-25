@@ -29,19 +29,28 @@ end
 
 **Implementation plan:**
 
+**IMPORTANT:** Research `defoverridable` and `super` - these are Elixir's native mechanisms for this pattern:
+- `defoverridable` makes functions overridable in child modules
+- `super` calls the overridden version from parent
+- This is the idiomatic Elixir way to do inheritance/extension
+
+**Approach 1: Using defoverridable (preferred if possible):**
+1. Have module-level hooks define overridable functions in the module
+2. Factory-level hooks override those functions and can call `super`
+3. Investigate if this works with the current macro-generated functions
+
+**Approach 2: Manual composition (fallback):**
 1. **Modify hook merge logic** (`lib/factory_man.ex:239-241`):
-   - Instead of simple `Keyword.merge`, wrap factory hooks to receive base hook as second parameter
-   - For each factory hook, look up corresponding module hook
-   - Create a wrapper that calls factory hook with `fn value -> factory_hook.(value, module_hook) end`
-
+   - Wrap factory hooks to receive base hook as parameter
 2. **Update hook invocation** (`lib/factory_man.ex:250-252, 259-261`):
-   - Hook handlers already retrieved via `get_hook_handler/2`
-   - Wrapped hooks should accept 1 or 2 arguments (detect arity)
-   - If arity 2, pass base hook; if arity 1, call as-is (backwards compatible)
-
+   - Detect arity (1 vs 2 args) for backwards compatibility
 3. **Test implementation** (`test/support/factories/users.ex:15-22`):
-   - Update existing custom hook to use 2-arity form
-   - Verify base hook (module-level `after_insert`) still executes
+   - Update to use 2-arity form if needed
+
+**Research needed:**
+- Can hooks be defined as module functions instead of lambdas?
+- Would `defoverridable` work with the current `use FactoryMan` pattern?
+- What's the most idiomatic Elixir way to compose hooks?
 
 **Files to modify:**
 - `lib/factory_man.ex:239-241` - Hook merge logic
