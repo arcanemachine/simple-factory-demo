@@ -181,82 +181,24 @@ The workspace includes tmux at `/workspace/local/bin/tmux`. **Always use tmux fo
 
 **IMPORTANT:** You don't need to kill and restart the tmux IEx session between operations. Keep the same session running - the user can monitor it and track what you're doing. Only restart if there's a specific problem (crashed session, need to change environment variables, etc.).
 
-## Core Macro Implementation Details
+## Macro Implementation (`lib/factory_man.ex:222-260`)
 
-### Main Factory Macro (`lib/factory_man.ex:222-260`)
+**Current API:** `factory(name, do: body)` - single do block
 
-**Signature:**
-```elixir
-defmacro factory(name, do: body)
-```
+**How it works:**
+- Escapes body AST with `Macro.escape(body, unquote: true)`
+- Injects `var!(params)` for parameter access in body
+- Generates: `build_{name}/1`, `insert_{name}!/1`, `_build_{name}_without_hooks/1` (private)
 
-**Implementation strategy:**
-1. Escapes body AST: `Macro.escape(body, unquote: true)`
-2. Uses `quote bind_quoted:` to capture name and escaped body
-3. Injects `var!(params)` into body scope for parameter access
-4. Generates three functions:
-   - `build_{name}/1` - Wraps private function with before/after_build hooks
-   - `insert_{name}!/1` - Builds + inserts with before/after_insert hooks
-   - `_build_{name}_without_hooks/1` (private) - Contains raw do block body
+**Hook flow:** before_build → body → after_build → repo.insert! → before_insert → after_insert
 
-**Critical insight:** The body is captured as AST and inserted wholesale into the private function. The `params` variable is made available via `var!()` hygiene escape.
-
-### Hook System Architecture
-
-**Hook execution order:**
-```
-insert_user!/1
-  ├─> before_build hook
-  ├─> _build_user_without_hooks/1 (do block body executes here)
-  ├─> after_build hook
-  ├─> repo.insert!()
-  ├─> before_insert hook
-  └─> after_insert hook
-```
-
-**Hook retrieval** (`lib/factory_man.ex:286`):
-- `get_hook_handler(hooks, hook_name)` looks up from module config
-- Defaults to `fallback_hook_handler/1` (line 271) which is identity function
-- Hooks configured at module level via `use FactoryMan, hooks: [...]`
-
-### Factory Examples in Codebase
-
-**User factory** (`test/support/factories/users.ex`):
+**Example:**
 ```elixir
 factory :user do
-  %User{
-    id: params[:id],
-    username: Map.get(params, :username, "user-#{System.os_time()}"),
-    author: params[:author]
-  }
+  %User{username: Map.get(params, :username, "default")}
 end
+# Generates: Users.build_user/1, Users.insert_user!/1
 ```
-
-**Post factory with associations** (`test/support/factories/posts.ex`):
-```elixir
-factory :post do
-  %Post{
-    author: params[:author] || Authors.build_author(),
-    title: Map.get(params, :title, "Sample Post Title"),
-    tags: params[:tags] || []
-  }
-end
-```
-
-**Usage:**
-```elixir
-Users.build_user(username: "alice")      # Build in memory
-Users.insert_user!(username: "bob")       # Build + insert to DB
-```
-
-### Factory Inheritance System
-
-Factories can inherit config from parent via `extends:` option:
-```elixir
-use FactoryMan, extends: ParentFactory
-```
-
-Implementation merges parent options (repo, hooks) with child (lines 195-205).
 
 ## Important Notes for Claude
 
