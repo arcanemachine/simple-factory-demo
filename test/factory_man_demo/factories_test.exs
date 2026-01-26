@@ -59,6 +59,13 @@ defmodule FactoryManDemo.FactoriesTest do
     assert actual_username == expected_username
   end
 
+  # Insert opts
+  test "can pass opts to `Repo.insert/2`" do
+    # returning: true
+    # on_conflict: replace
+    raise "FIXME: TODO"
+  end
+
   # Multi-insert
   test "can insert multiple factory products one-at-a-time" do
     assert %User{} = Factories.insert_user!()

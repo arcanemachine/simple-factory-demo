@@ -5,23 +5,23 @@ defmodule FactoryManDemo.Factories do
   alias FactoryManDemo.Users.User
 
   factory :user do
-    %{username: "user-#{System.os_time()}"}
-    |> Map.merge(params)
-    |> then(&struct(User, &1))
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    struct(User, Map.merge(base_params, params))
   end
 
   factory :extended_user do
-    %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
-    |> Map.merge(params)
-    |> then(&build_user/1)
+    base_params = %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
+
+    base_params |> Map.merge(params) |> build_user()
   end
 
   factory :author do
-    defaults = %{
-      user: Map.get_lazy(params, :user, fn -> build_user() end),
-      name: Map.get(params, :name, "Some author")
+    base_params = %{
+      user: params[:user] || build_user(),
+      name: "Some author"
     }
 
-    struct(Author, Map.merge(defaults, params))
+    struct(Author, Map.merge(base_params, params))
   end
 end
