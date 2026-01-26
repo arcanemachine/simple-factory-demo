@@ -214,8 +214,7 @@ defmodule FactoryMan do
   end
 
   defmacro factory(factory_name, opts) do
-    [{:do, do_body} | reversed_opts] = opts |> Enum.reverse()
-    opts = Enum.reverse(reversed_opts)
+    {do_body, opts} = Keyword.pop(opts, :do)
 
     quote bind_quoted: [
             factory_name: factory_name,

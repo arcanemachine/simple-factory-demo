@@ -1,10 +1,9 @@
 defmodule FactoryManDemo.Factory do
   use FactoryMan,
     repo: FactoryManDemo.Repo,
-    # actions: [:build, :insert],
     hooks: [
       # before_build: &__MODULE__.before_build_handler/1
-      # after_insert: &__MODULE__.after_insert_handler/1
+      after_insert: &__MODULE__.after_insert_handler/1
     ]
 
   # @doc "An example custom build handler"
