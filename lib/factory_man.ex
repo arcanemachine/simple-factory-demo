@@ -189,7 +189,7 @@ defmodule FactoryMan do
   defmacro __using__(opts \\ []) do
     quote do
       # Import factory macro
-      import unquote(__MODULE__), only: [factory: 2]
+      import unquote(__MODULE__), only: [factory: 2, factory: 3]
 
       parent_factory_opts =
         case unquote(opts)[:extends] do
@@ -213,29 +213,53 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro factory(factory_name, opts) do
-    {do_body, opts} = Keyword.pop(opts, :do)
-
+  defmacro factory(factory_param, opts \\ [], do: block) do
     quote bind_quoted: [
-            factory_name: factory_name,
+            factory_param: factory_param,
             opts: opts,
-            do_body: Macro.escape(do_body, unquote: true)
+            block: Macro.escape(block, unquote: true)
           ] do
       parent_factory_opts = Module.get_attribute(__MODULE__, :parent_factory_opts)
 
-      opts =
+      merged_opts =
         parent_factory_opts
         # Drop keys that do not pertain to individual factories
         |> Keyword.drop([:extends])
         # Child factory opts override parent factory opts
         |> Keyword.merge(opts)
 
-      @doc "A debug helper function that shows all the options used in this factory."
-      def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-        do: unquote(Keyword.merge(parent_factory_opts, opts))
+      {factory_name, schema} =
+        cond do
+          Code.ensure_loaded?(factory_param) and function_exported?(factory_param, :__schema__, 1) ->
+            if merged_opts[:schema] do
+              raise """
+              option `:schema` is unnecessary when the first param is an Ecto schema module\
+              """
+            end
 
-      hooks = opts[:hooks] || []
-      repo = opts[:repo]
+            schema = factory_param
+
+            factory_name =
+              Atom.to_string(schema)
+              |> String.split(".")
+              |> List.last()
+              |> String.downcase()
+
+            {factory_name, schema}
+
+          is_atom(factory_param) ->
+            {Atom.to_string(factory_param), merged_opts[:schema]}
+
+          true ->
+            raise "expected the first factory param to be an atom or an Ecto schema module"
+        end
+
+      # @doc "A debug helper function that shows all the options used in this factory."
+      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
+      #   do: unquote(Keyword.merge(merged_opts))
+
+      hooks = merged_opts[:hooks] || []
+      repo = merged_opts[:repo]
 
       # Generate the build function
       build_function_name = :"build_#{factory_name}"
@@ -247,29 +271,30 @@ defmodule FactoryMan do
         # Suppress unused warning if params not used
         _ = var!(params)
 
-        unquote(do_body)
+        unquote(block)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
 
-      if not is_nil(repo) and opts[:insert?] != false do
+      if not is_nil(repo) and merged_opts[:insert?] != false do
         # Generate the insert function
         insert_function_name = :"insert_#{factory_name}!"
 
         def unquote(insert_function_name)(params \\ %{})
 
-        def unquote(insert_function_name)(insert_opts) when is_list(insert_opts) do
-          unquote(insert_function_name)(%{}, insert_opts)
+        def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
+          unquote(insert_function_name)(%{}, repo_insert_opts)
         end
 
         def unquote(insert_function_name)(params) do
           unquote(insert_function_name)(params, [])
         end
 
-        def unquote(insert_function_name)(params, insert_opts) when is_list(insert_opts) do
+        def unquote(insert_function_name)(params, repo_insert_opts)
+            when is_list(repo_insert_opts) do
           params
           |> unquote(build_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
-          |> unquote(repo).insert!(insert_opts)
+          |> unquote(repo).insert!(repo_insert_opts)
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
         end
       end

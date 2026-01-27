@@ -1,27 +1,27 @@
 defmodule FactoryManDemo.Factories do
   use FactoryMan, extends: FactoryManDemo.Factory
 
-  alias FactoryManDemo.Authors.Author
+  # alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
-  factory :user do
+  factory :user, schema: User do
     base_params = %{username: "user-#{System.os_time()}"}
 
     struct(User, Map.merge(base_params, params))
   end
 
-  factory :extended_user do
-    base_params = %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
+  # factory :extended_user do
+  #   base_params = %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
 
-    base_params |> Map.merge(params) |> build_user()
-  end
+  #   base_params |> Map.merge(params) |> build_user()
+  # end
 
-  factory :author do
-    base_params = %{
-      user: params[:user] || build_user(),
-      name: "Some author"
-    }
+  # factory :author do
+  #   base_params = %{
+  #     user: params[:user] || build_user(),
+  #     name: "Some author"
+  #   }
 
-    struct(Author, Map.merge(base_params, params))
-  end
+  #   struct(Author, Map.merge(base_params, params))
+  # end
 end
