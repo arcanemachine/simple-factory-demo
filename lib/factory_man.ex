@@ -227,12 +227,13 @@ defmodule FactoryMan do
         # Child factory opts override parent factory opts
         |> Keyword.merge(opts)
 
-      factory_param_is_struct? =
-        Code.ensure_loaded?(factory_param) and function_exported?(factory_param, :__struct__, 0)
-
       {factory_name, struct} =
         cond do
-          factory_param_is_struct? ->
+          not is_atom(factory_param) ->
+            raise "expected the first factory param to be an atom or Ecto schema module"
+
+          Code.ensure_loaded?(factory_param) and
+              function_exported?(factory_param, :__struct__, 0) ->
             if merged_opts[:struct] do
               raise ArgumentError,
                     "option `:struct` is redundant when the first param is a struct module"
@@ -248,11 +249,8 @@ defmodule FactoryMan do
 
             {factory_name, struct}
 
-          is_atom(factory_param) ->
-            {Atom.to_string(factory_param), merged_opts[:struct]}
-
           true ->
-            raise "expected the first factory param to be an atom or an Ecto schema module"
+            {Atom.to_string(factory_param), merged_opts[:struct]}
         end
 
       @doc "A debug helper function that shows all the options used in this factory."
@@ -279,10 +277,8 @@ defmodule FactoryMan do
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
 
-      # Generate struct builder function (Struct factories only)
-      is_struct_factory? = factory_param_is_struct? or struct != nil
-
-      if is_struct_factory? do
+      if struct != nil do
+        # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}"
 
         def unquote(build_struct_function_name)(params \\ %{}) do
@@ -300,7 +296,7 @@ defmodule FactoryMan do
           is_ecto_schema_factory? and not is_nil(repo) and merged_opts[:insert?] != false
 
         if is_insertable_ecto_schema_factory? do
-          # Generate the insert function
+          # Generate insert function
           insert_function_name = :"insert_#{factory_name}"
 
           def unquote(insert_function_name)(params \\ %{})

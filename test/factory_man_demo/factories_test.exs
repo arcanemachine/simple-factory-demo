@@ -13,7 +13,7 @@ defmodule FactoryManDemo.FactoriesTest do
   end
 
   test "can insert a factory product with default params" do
-    assert %User{id: id} = Factories.insert_user!()
+    assert %User{id: id} = Factories.insert_user()
 
     assert is_integer(id)
   end
@@ -39,7 +39,7 @@ defmodule FactoryManDemo.FactoriesTest do
   end
 
   test "can insert a factory product that extends another factory with default params" do
-    assert user = %User{id: id} = Factories.insert_extended_user!()
+    assert user = %User{id: id} = Factories.insert_extended_user()
 
     assert is_integer(id)
     assert String.starts_with?(user.username, "extended-user-")
@@ -68,11 +68,11 @@ defmodule FactoryManDemo.FactoriesTest do
 
   # Multi-insert
   test "can insert multiple factory products one-at-a-time" do
-    assert %User{} = Factories.insert_user!()
-    assert %User{} = Factories.insert_user!()
+    assert %User{} = Factories.insert_user()
+    assert %User{} = Factories.insert_user()
 
-    assert %Author{} = Factories.insert_author!()
-    assert %Author{} = Factories.insert_author!()
+    assert %Author{} = Factories.insert_author()
+    assert %Author{} = Factories.insert_author()
   end
 
   # Use assocs from other factory products
@@ -85,9 +85,9 @@ defmodule FactoryManDemo.FactoriesTest do
   end
 
   test "can build a factory product with assocs from another inserted factory product" do
-    user = Factories.insert_user!(%{username: "user-#{get_unique_value()}"})
+    user = Factories.insert_user(%{username: "user-#{get_unique_value()}"})
 
-    author = %Author{} = Factories.insert_author!(%{user: user})
+    author = %Author{} = Factories.insert_author(%{user: user})
 
     assert Repo.preload(author, :user).user == user
   end
