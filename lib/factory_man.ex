@@ -262,7 +262,11 @@ defmodule FactoryMan do
       repo = merged_opts[:repo]
 
       # Generate param builder function
-      build_params_function_name = :"build_#{factory_name}_params"
+      build_params_function_name =
+        case struct do
+          nil -> :"build_#{factory_name}"
+          _ -> :"build_#{factory_name}_params"
+        end
 
       def unquote(build_params_function_name)(input_params \\ %{}) do
         var!(params) =
@@ -279,7 +283,7 @@ defmodule FactoryMan do
       is_struct_factory? = factory_param_is_struct? or struct != nil
 
       if is_struct_factory? do
-        build_struct_function_name = :"build_#{factory_name}_struct!"
+        build_struct_function_name = :"build_#{factory_name}"
 
         def unquote(build_struct_function_name)(params \\ %{}) do
           params
@@ -297,7 +301,7 @@ defmodule FactoryMan do
 
         if is_insertable_ecto_schema_factory? do
           # Generate the insert function
-          insert_function_name = :"insert_#{factory_name}!"
+          insert_function_name = :"insert_#{factory_name}"
 
           def unquote(insert_function_name)(params \\ %{})
 
