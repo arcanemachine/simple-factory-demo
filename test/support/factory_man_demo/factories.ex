@@ -18,7 +18,7 @@ defmodule FactoryManDemo.Factories do
 
   factory Author do
     base_params = %{
-      user: params[:user] || build_user(),
+      user: params[:user] || build_user_struct(),
       name: "Some author"
     }
 

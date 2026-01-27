@@ -230,7 +230,7 @@ defmodule FactoryMan do
       {factory_name, struct} =
         cond do
           not is_atom(factory_param) ->
-            raise "expected the first factory param to be an atom or Ecto schema module"
+            raise "the first factory param must be an atom or Ecto schema module"
 
           Code.ensure_loaded?(factory_param) and
               function_exported?(factory_param, :__struct__, 0) ->
@@ -260,26 +260,23 @@ defmodule FactoryMan do
       repo = merged_opts[:repo]
 
       # Generate param builder function
-      build_params_function_name =
-        case struct do
-          nil -> :"build_#{factory_name}"
-          _ -> :"build_#{factory_name}_params"
-        end
+      build_params_function_name = :"build_#{factory_name}_params"
 
       def unquote(build_params_function_name)(input_params \\ %{}) do
         var!(params) =
-          input_params |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+          input_params
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(&1))
 
         # Suppress unused warning if params not used
         _ = var!(params)
 
         unquote(block)
-        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
+        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
       if struct != nil do
         # Generate struct builder function
-        build_struct_function_name = :"build_#{factory_name}"
+        build_struct_function_name = :"build_#{factory_name}_struct"
 
         def unquote(build_struct_function_name)(params \\ %{}) do
           params

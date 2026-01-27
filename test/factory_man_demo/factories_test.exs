@@ -9,7 +9,7 @@ defmodule FactoryManDemo.FactoriesTest do
 
   # Default params
   test "can build a factory product with default params" do
-    assert %User{id: nil} = Factories.build_user()
+    assert %User{id: nil} = Factories.build_user_struct()
   end
 
   test "can insert a factory product with default params" do
@@ -20,20 +20,20 @@ defmodule FactoryManDemo.FactoriesTest do
 
   # Custom params
   test "can build a factory product with custom params" do
-    assert %User{id: 123} = Factories.build_user(%{id: 123})
+    assert %User{id: 123} = Factories.build_user_struct(%{id: 123})
   end
 
   test "can insert a factory product with custom params" do
     id = Enum.random(10_000_000..2_000_000_000)
 
-    assert %User{} = user = Factories.build_user(%{id: id})
+    assert %User{} = user = Factories.build_user_struct(%{id: id})
 
     assert user.id == id
   end
 
   # Extend other factories - default params
   test "can build a factory product that extends another factory with default params" do
-    assert user = %User{id: nil} = Factories.build_extended_user()
+    assert user = %User{id: nil} = Factories.build_extended_user_struct()
 
     assert String.starts_with?(user.username, "extended-user-")
   end
@@ -47,14 +47,14 @@ defmodule FactoryManDemo.FactoriesTest do
 
   test "can build a factory product that extends another factory with custom params" do
     assert %User{username: "custom_username"} =
-             Factories.build_extended_user(%{username: "custom_username"})
+             Factories.build_extended_user_struct(%{username: "custom_username"})
   end
 
   test "can insert a factory product that extends another factory with custom params" do
     expected_username = "custom_username-#{get_unique_value()}"
 
     assert %User{username: actual_username} =
-             Factories.build_extended_user(%{username: expected_username})
+             Factories.build_extended_user_struct(%{username: expected_username})
 
     assert actual_username == expected_username
   end
@@ -77,9 +77,9 @@ defmodule FactoryManDemo.FactoriesTest do
 
   # Use assocs from other factory products
   test "can build a factory product with assocs from another built factory product" do
-    user = Factories.build_user(%{username: "user-#{get_unique_value()}"})
+    user = Factories.build_user_struct(%{username: "user-#{get_unique_value()}"})
 
-    author = %Author{} = Factories.build_author(%{user: user})
+    author = %Author{} = Factories.build_author_struct(%{user: user})
 
     assert author.user == user
   end
