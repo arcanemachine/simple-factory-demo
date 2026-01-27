@@ -242,8 +242,7 @@ defmodule FactoryMan do
 
       def unquote(build_function_name)(input_params \\ %{}) do
         var!(params) =
-          input_params
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
+          input_params |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
 
         # Suppress unused warning if params not used
         _ = var!(params)
