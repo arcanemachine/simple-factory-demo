@@ -188,7 +188,6 @@ defmodule FactoryMan do
 
   defmacro __using__(opts \\ []) do
     quote do
-      # Import factory macro
       import unquote(__MODULE__), only: [factory: 2, factory: 3]
 
       parent_factory_opts =
@@ -228,43 +227,44 @@ defmodule FactoryMan do
         # Child factory opts override parent factory opts
         |> Keyword.merge(opts)
 
-      {factory_name, schema} =
+      factory_param_is_struct? =
+        Code.ensure_loaded?(factory_param) and function_exported?(factory_param, :__struct__, 0)
+
+      {factory_name, struct} =
         cond do
-          Code.ensure_loaded?(factory_param) and function_exported?(factory_param, :__schema__, 1) ->
-            if merged_opts[:schema] do
-              raise """
-              option `:schema` is unnecessary when the first param is an Ecto schema module\
-              """
+          factory_param_is_struct? ->
+            if merged_opts[:struct] do
+              raise ArgumentError,
+                    "option `:struct` is redundant when the first param is a struct module"
             end
 
-            schema = factory_param
+            struct = factory_param
 
             factory_name =
-              Atom.to_string(schema)
+              Atom.to_string(struct)
               |> String.split(".")
               |> List.last()
               |> String.downcase()
 
-            {factory_name, schema}
+            {factory_name, struct}
 
           is_atom(factory_param) ->
-            {Atom.to_string(factory_param), merged_opts[:schema]}
+            {Atom.to_string(factory_param), merged_opts[:struct]}
 
           true ->
             raise "expected the first factory param to be an atom or an Ecto schema module"
         end
 
-      # @doc "A debug helper function that shows all the options used in this factory."
-      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(),
-      #   do: unquote(Keyword.merge(merged_opts))
+      @doc "A debug helper function that shows all the options used in this factory."
+      def unquote(String.to_atom("_#{factory_name}_factory_opts"))(), do: unquote(merged_opts)
 
       hooks = merged_opts[:hooks] || []
       repo = merged_opts[:repo]
 
-      # Generate the build function
-      build_function_name = :"build_#{factory_name}"
+      # Generate param builder function
+      build_params_function_name = :"build_#{factory_name}_params"
 
-      def unquote(build_function_name)(input_params \\ %{}) do
+      def unquote(build_params_function_name)(input_params \\ %{}) do
         var!(params) =
           input_params |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build).(&1))
 
@@ -275,27 +275,48 @@ defmodule FactoryMan do
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build).(&1))
       end
 
-      if not is_nil(repo) and merged_opts[:insert?] != false do
-        # Generate the insert function
-        insert_function_name = :"insert_#{factory_name}!"
+      # Generate struct builder function (Struct factories only)
+      is_struct_factory? = factory_param_is_struct? or struct != nil
 
-        def unquote(insert_function_name)(params \\ %{})
+      if is_struct_factory? do
+        build_struct_function_name = :"build_#{factory_name}_struct!"
 
-        def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
-          unquote(insert_function_name)(%{}, repo_insert_opts)
-        end
-
-        def unquote(insert_function_name)(params) do
-          unquote(insert_function_name)(params, [])
-        end
-
-        def unquote(insert_function_name)(params, repo_insert_opts)
-            when is_list(repo_insert_opts) do
+        def unquote(build_struct_function_name)(params \\ %{}) do
           params
-          |> unquote(build_function_name)()
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
-          |> unquote(repo).insert!(repo_insert_opts)
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
+          |> unquote(build_params_function_name)()
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
+          |> then(&struct!(unquote(struct), &1))
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
+        end
+
+        is_ecto_schema_factory? =
+          Code.ensure_loaded?(struct) and function_exported?(struct, :__schema__, 1)
+
+        is_insertable_ecto_schema_factory? =
+          is_ecto_schema_factory? and not is_nil(repo) and merged_opts[:insert?] != false
+
+        if is_insertable_ecto_schema_factory? do
+          # Generate the insert function
+          insert_function_name = :"insert_#{factory_name}!"
+
+          def unquote(insert_function_name)(params \\ %{})
+
+          def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
+            unquote(insert_function_name)(%{}, repo_insert_opts)
+          end
+
+          def unquote(insert_function_name)(params) do
+            unquote(insert_function_name)(params, [])
+          end
+
+          def unquote(insert_function_name)(params, repo_insert_opts)
+              when is_list(repo_insert_opts) do
+            params
+            |> unquote(build_struct_function_name)()
+            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
+            |> unquote(repo).insert!(repo_insert_opts)
+            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
+          end
         end
       end
     end

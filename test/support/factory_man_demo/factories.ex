@@ -4,17 +4,17 @@ defmodule FactoryManDemo.Factories do
   # alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
-  factory :user, schema: User do
+  factory User do
     base_params = %{username: "user-#{System.os_time()}"}
 
-    struct(User, Map.merge(base_params, params))
+    Map.merge(base_params, params)
   end
 
-  # factory :extended_user do
-  #   base_params = %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
+  factory :extended_user, struct: User do
+    base_params = %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
 
-  #   base_params |> Map.merge(params) |> build_user()
-  # end
+    base_params |> Map.merge(params) |> build_user_params()
+  end
 
   # factory :author do
   #   base_params = %{
