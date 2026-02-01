@@ -4,7 +4,7 @@ defmodule FactoryManDemo.Factories do
   alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
-  deffactory user(params \\ %{}), struct: User do
+  deffactory user(params \\ %{}), struct: User, insert_struct?: false do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)

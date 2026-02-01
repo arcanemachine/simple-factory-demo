@@ -207,14 +207,16 @@ defmodule FactoryMan do
       Module.register_attribute(__MODULE__, :parent_factory_opts, persist: true)
       Module.put_attribute(__MODULE__, :parent_factory_opts, parent_factory_opts)
 
-      @doc "A debug helper function that can show all the options used in this factory module."
+      @doc """
+      A debug helper function that can show all the options for the `#{inspect(__MODULE__)}`
+      factory module.
+      """
       def _factory_opts, do: @parent_factory_opts
     end
   end
 
   defmacro deffactory(factory_head, opts \\ [], do: block) do
-    {factory_name, _,
-     [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} =
+    {factory_name, _, [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} =
       factory_head
 
     # Double-escape: bind_quoted evaluates once (removing one layer of escaping),
@@ -230,16 +232,10 @@ defmodule FactoryMan do
             block: Macro.escape(block, unquote: true)
           ] do
       parent_factory_opts = Module.get_attribute(__MODULE__, :parent_factory_opts)
+      merged_opts = Keyword.merge(parent_factory_opts, opts)
 
-      merged_opts =
-        parent_factory_opts
-        # Drop keys that do not pertain to individual factories
-        |> Keyword.drop([:extends])
-        # Child factory opts override parent factory opts
-        |> Keyword.merge(opts)
-
-      # @doc "A debug helper function that shows all the options used in this factory."
-      # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(), do: unquote(merged_opts)
+      @doc "A debug helper function that shows all options for the `#{factory_name}` factory."
+      def unquote(String.to_atom("_#{factory_name}_factory_opts"))(), do: unquote(merged_opts)
 
       hooks = merged_opts[:hooks] || []
       repo = merged_opts[:repo]
@@ -260,7 +256,7 @@ defmodule FactoryMan do
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
-      if struct != nil do
+      if struct != nil and merged_opts[:build_struct?] != false do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
@@ -276,7 +272,7 @@ defmodule FactoryMan do
           Code.ensure_loaded?(struct) and function_exported?(struct, :__schema__, 1)
 
         is_insertable_ecto_schema_factory? =
-          is_ecto_schema_factory? and not is_nil(repo) and merged_opts[:insert?] != false
+          is_ecto_schema_factory? and not is_nil(repo) and merged_opts[:insert_struct?] != false
 
         if is_insertable_ecto_schema_factory? do
           # Generate struct insert function
