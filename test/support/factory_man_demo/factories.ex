@@ -2,7 +2,7 @@ defmodule FactoryManDemo.Factories do
   use FactoryMan, extends: FactoryManDemo.Factory
 
   # alias FactoryManDemo.Authors.Author
-  alias FactoryManDemo.Users.User
+  # alias FactoryManDemo.Users.User
 
   # factory :user, struct: User do
   #   base_params = %{username: "user-#{System.os_time()}"}
@@ -25,8 +25,8 @@ defmodule FactoryManDemo.Factories do
   #   Map.merge(base_params, params)
   # end
 
-  deffactory hello(params \\ %{}) do
-    :ok
+  deffactory hello(world) do
+    world
   end
 
   # deffactory user(params \\ %{}), struct: User do

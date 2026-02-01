@@ -212,15 +212,13 @@ defmodule FactoryMan do
     end
   end
 
-  defmacro deffactory(factory_param, opts \\ [], do: block) do
-    # {:user, [], [{:params, [], Elixir}]}
-    # {:user, [], [{:\\, [], [{:params, [], Elixir}, {:%{}, [], []}]}]}
-
-    {factory_name, _metadata, factory_args} = factory_param
+  defmacro deffactory(factory_head, opts \\ [], do: block) do
+    {factory_name, _, [{factory_arg_name, _, factory_arg_ctx} | _]} = factory_head
 
     quote bind_quoted: [
             factory_name: factory_name,
-            factory_args: Macro.escape(factory_args, unquote: true),
+            factory_arg_ctx: factory_arg_ctx,
+            factory_arg_name: factory_arg_name,
             opts: opts,
             block: Macro.escape(block, unquote: true)
           ] do
@@ -243,15 +241,11 @@ defmodule FactoryMan do
       # Generate params builder function
       build_params_function_name = :"build_#{factory_name}_params"
 
-      factory_args |> IO.inspect(label: "\nfixme1\n", syntax_colors: IO.ANSI.syntax_colors())
-
-      def unquote(build_params_function_name)(input_params \\ %{}) do
-        var!(params) =
-          input_params
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(&1))
-
-        # Suppress unused warning if params not used
-        _ = var!(params)
+      def unquote(build_params_function_name)(
+            unquote(Macro.var(factory_arg_name, factory_arg_ctx))
+          ) do
+        unquote(Macro.var(factory_arg_name, nil)) =
+          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(input)
 
         unquote(block)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
