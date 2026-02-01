@@ -232,32 +232,6 @@ defmodule FactoryMan do
         # Child factory opts override parent factory opts
         |> Keyword.merge(opts)
 
-      # {factory_name, struct} =
-      #   cond do
-      #     not is_atom(factory_param) ->
-      #       raise "the first factory param must be an atom or Ecto schema module"
-
-      #     Code.ensure_loaded?(factory_param) and
-      #         function_exported?(factory_param, :__struct__, 0) ->
-      #       if merged_opts[:struct] do
-      #         raise ArgumentError,
-      #               "option `:struct` is redundant when the first param is a struct module"
-      #       end
-
-      #       struct = factory_param
-
-      #       factory_name =
-      #         Atom.to_string(struct)
-      #         |> String.split(".")
-      #         |> List.last()
-      #         |> String.downcase()
-
-      #       {factory_name, struct}
-
-      #     true ->
-      #       {Atom.to_string(factory_param), merged_opts[:struct]}
-      #   end
-
       # @doc "A debug helper function that shows all the options used in this factory."
       # def unquote(String.to_atom("_#{factory_name}_factory_opts"))(), do: unquote(merged_opts)
 
@@ -265,7 +239,7 @@ defmodule FactoryMan do
       repo = merged_opts[:repo]
       struct = merged_opts[:struct]
 
-      # Generate param builder function
+      # Generate params builder function
       build_params_function_name = :"build_#{factory_name}_params"
 
       def unquote(build_params_function_name)(input_params \\ %{}) do
@@ -299,7 +273,7 @@ defmodule FactoryMan do
           is_ecto_schema_factory? and not is_nil(repo) and merged_opts[:insert?] != false
 
         if is_insertable_ecto_schema_factory? do
-          # Generate insert function
+          # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 
           def unquote(insert_function_name)(params \\ %{})
