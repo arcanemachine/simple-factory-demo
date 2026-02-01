@@ -241,11 +241,11 @@ defmodule FactoryMan do
       # Generate params builder function
       build_params_function_name = :"build_#{factory_name}_params"
 
-      def unquote(build_params_function_name)(
-            unquote(Macro.var(factory_arg_name, factory_arg_ctx))
-          ) do
-        unquote(Macro.var(factory_arg_name, nil)) =
-          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(input)
+      def unquote(build_params_function_name)(unquote(Macro.var(:input, nil)) \\ %{}) do
+        unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
+          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
+            unquote(Macro.var(:input, nil))
+          )
 
         unquote(block)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
