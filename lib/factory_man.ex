@@ -213,11 +213,14 @@ defmodule FactoryMan do
   end
 
   defmacro deffactory(factory_head, opts \\ [], do: block) do
-    {factory_name, _, [{factory_arg_name, _, factory_arg_ctx} | _]} = factory_head
+    {factory_name, _,
+     [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, {factory_arg_default_value, _, []}]}]} =
+      factory_head
 
     quote bind_quoted: [
             factory_name: factory_name,
             factory_arg_ctx: factory_arg_ctx,
+            factory_arg_default_value: factory_arg_default_value,
             factory_arg_name: factory_arg_name,
             opts: opts,
             block: Macro.escape(block, unquote: true)
@@ -241,10 +244,12 @@ defmodule FactoryMan do
       # Generate params builder function
       build_params_function_name = :"build_#{factory_name}_params"
 
-      def unquote(build_params_function_name)(unquote(Macro.var(:input, nil)) \\ %{}) do
+      def unquote(build_params_function_name)(
+            unquote(Macro.var(:input_params, nil)) \\ unquote(factory_arg_default_value)
+          ) do
         unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
           FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
-            unquote(Macro.var(:input, nil))
+            unquote(Macro.var(:input_params, nil))
           )
 
         unquote(block)
@@ -255,7 +260,7 @@ defmodule FactoryMan do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
-        def unquote(build_struct_function_name)(params \\ %{}) do
+        def unquote(build_struct_function_name)(params \\ factory_arg_default_value) do
           params
           |> unquote(build_params_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
@@ -273,7 +278,7 @@ defmodule FactoryMan do
           # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 
-          def unquote(insert_function_name)(params \\ %{})
+          def unquote(insert_function_name)(params \\ factory_arg_default_value)
 
           def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
             unquote(insert_function_name)(%{}, repo_insert_opts)

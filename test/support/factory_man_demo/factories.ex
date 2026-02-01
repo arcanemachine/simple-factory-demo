@@ -25,7 +25,7 @@ defmodule FactoryManDemo.Factories do
   #   Map.merge(base_params, params)
   # end
 
-  deffactory hello(world) do
+  deffactory hello(world \\ %{}) do
     world
   end
 
