@@ -214,13 +214,17 @@ defmodule FactoryMan do
 
   defmacro deffactory(factory_head, opts \\ [], do: block) do
     {factory_name, _,
-     [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, {factory_arg_default_value, _, []}]}]} =
+     [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} =
       factory_head
+
+    # Double-escape: bind_quoted evaluates once (removing one layer of escaping),
+    # leaving the original AST that can be unquoted into generated code.
+    escaped_default = Macro.escape(default_ast, unquote: true)
 
     quote bind_quoted: [
             factory_name: factory_name,
             factory_arg_ctx: factory_arg_ctx,
-            factory_arg_default_value: factory_arg_default_value,
+            default_value_ast: escaped_default,
             factory_arg_name: factory_arg_name,
             opts: opts,
             block: Macro.escape(block, unquote: true)
@@ -245,7 +249,7 @@ defmodule FactoryMan do
       build_params_function_name = :"build_#{factory_name}_params"
 
       def unquote(build_params_function_name)(
-            unquote(Macro.var(:input_params, nil)) \\ unquote(Macro.escape(factory_arg_default_value))
+            unquote(Macro.var(:input_params, nil)) \\ unquote(default_value_ast)
           ) do
         unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
           FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
@@ -260,7 +264,7 @@ defmodule FactoryMan do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
-        def unquote(build_struct_function_name)(params \\ unquote(Macro.escape(factory_arg_default_value))) do
+        def unquote(build_struct_function_name)(params \\ unquote(default_value_ast)) do
           params
           |> unquote(build_params_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
@@ -278,7 +282,7 @@ defmodule FactoryMan do
           # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 
-          def unquote(insert_function_name)(params \\ unquote(Macro.escape(factory_arg_default_value)))
+          def unquote(insert_function_name)(params \\ unquote(default_value_ast))
 
           def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
             unquote(insert_function_name)(%{}, repo_insert_opts)
