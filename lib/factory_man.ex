@@ -245,7 +245,7 @@ defmodule FactoryMan do
       build_params_function_name = :"build_#{factory_name}_params"
 
       def unquote(build_params_function_name)(
-            unquote(Macro.var(:input_params, nil)) \\ unquote(factory_arg_default_value)
+            unquote(Macro.var(:input_params, nil)) \\ unquote(Macro.escape(factory_arg_default_value))
           ) do
         unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
           FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
@@ -260,7 +260,7 @@ defmodule FactoryMan do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
-        def unquote(build_struct_function_name)(params \\ factory_arg_default_value) do
+        def unquote(build_struct_function_name)(params \\ unquote(Macro.escape(factory_arg_default_value))) do
           params
           |> unquote(build_params_function_name)()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
@@ -278,7 +278,7 @@ defmodule FactoryMan do
           # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 
-          def unquote(insert_function_name)(params \\ factory_arg_default_value)
+          def unquote(insert_function_name)(params \\ unquote(Macro.escape(factory_arg_default_value)))
 
           def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
             unquote(insert_function_name)(%{}, repo_insert_opts)
