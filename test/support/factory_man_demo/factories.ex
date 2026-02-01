@@ -16,22 +16,22 @@ defmodule FactoryManDemo.Factories do
   #   base_params |> Map.merge(params) |> build_user_params()
   # end
 
-  factory Author do
-    base_params = %{
-      user: params[:user] || build_user_struct(),
-      name: "Some author"
-    }
+  # factory Author do
+  #   base_params = %{
+  #     user: params[:user] || build_user_struct(),
+  #     name: "Some author"
+  #   }
 
-    Map.merge(base_params, params)
-  end
+  #   Map.merge(base_params, params)
+  # end
 
   deffactory hello(params \\ %{}) do
     :ok
   end
 
-  deffactory user(params \\ %{}), struct: User do
-    base_params = %{username: "user-#{System.os_time()}"}
+  # deffactory user(params \\ %{}), struct: User do
+  #   base_params = %{username: "user-#{System.os_time()}"}
 
-    Map.merge(base_params, params)
-  end
+  #   Map.merge(base_params, params)
+  # end
 end

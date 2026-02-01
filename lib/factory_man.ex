@@ -216,10 +216,11 @@ defmodule FactoryMan do
     # {:user, [], [{:params, [], Elixir}]}
     # {:user, [], [{:\\, [], [{:params, [], Elixir}, {:%{}, [], []}]}]}
 
-    {factory_name, _metadata, _argments} = factory_param
+    {factory_name, _metadata, factory_args} = factory_param
 
     quote bind_quoted: [
             factory_name: factory_name,
+            factory_args: Macro.escape(factory_args, unquote: true),
             opts: opts,
             block: Macro.escape(block, unquote: true)
           ] do
@@ -241,6 +242,8 @@ defmodule FactoryMan do
 
       # Generate params builder function
       build_params_function_name = :"build_#{factory_name}_params"
+
+      factory_args |> IO.inspect(label: "\nfixme1\n", syntax_colors: IO.ANSI.syntax_colors())
 
       def unquote(build_params_function_name)(input_params \\ %{}) do
         var!(params) =
