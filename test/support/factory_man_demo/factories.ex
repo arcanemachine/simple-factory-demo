@@ -5,15 +5,29 @@ defmodule FactoryManDemo.Factories do
   alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
-  # Factory with defaults
+  # Insertable struct factory
   deffactory user(params \\ %{}), struct: User do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)
   end
 
-  # Factory without defaults
-  deffactory required_user(params), struct: User do
+  # Struct factory (params only, no struct builder)
+  deffactory params_only_user(params \\ %{}), struct: User do
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    Map.merge(base_params, params)
+  end
+
+  # Non-insertable struct factory
+  deffactory non_insertable_user(params \\ %{}), struct: User, insert_struct?: false do
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    Map.merge(base_params, params)
+  end
+
+  # Insertable struct factory without fallback to default values
+  deffactory user_without_default_fallback(params), struct: User do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)

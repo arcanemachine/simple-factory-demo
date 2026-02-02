@@ -17,7 +17,7 @@ defmodule FactoryMan do
     alias YourProject.Users.User
 
     deffactory user(params \\ %{}), struct: User do
-      base_params = %{username: "user-#{System.os_time(:second)}"}
+      base_params = %{username: "user-#{System.os_time()}"}
 
       Map.merge(base_params, params)
     end
@@ -25,7 +25,6 @@ defmodule FactoryMan do
     @doc "You can add docstrings for your builder functions, if desired."
     deffactory profile(params \\ %{}), struct: Profile do
       base_params = %{
-        id: params[:id],
         user: params[:user] || build_user_struct()
       }
 
