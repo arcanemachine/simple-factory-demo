@@ -4,22 +4,6 @@ defmodule FactoryMan do
 
   ## Getting started
 
-  - Install the application:
-
-  `your_project/mix.exs`
-  ```elixir
-  FIXME
-  ```
-
-  > FIXME: Add instructions for adding it to test/non-test environments
-
-  - If using `FactoryMan.Sequence`, add the following line to `test/test_helper.exs`:
-
-  `your_project/test/test_helper.exs`
-  ```elixir
-  FIXME
-  ```
-
   ### Create your first factory
 
   Create a factory module in the desired location:
@@ -67,23 +51,6 @@ defmodule FactoryMan do
 
   ## Factory module options
 
-  #### `:after_insert` (arity-1 function reference) - A post-insert hook for your factory products
-
-  Perform actions on your factory products after they have been inserted to the database:
-
-  - Create a handler function:
-
-  ```elixir
-  FIXME
-  ```
-
-  - The handler will be automatically invoked after the factory product has been inserted into
-  the database:
-
-  ```elixir
-  FIXME
-  ```
-
   #### `:extends` (module) - Reduce boilerplate by inheriting options from a parent factory
 
   You may create a "base" factory, which can be extended to produce "child" factories (which
@@ -129,16 +96,13 @@ defmodule FactoryMan do
 
   > NOTE: These conventions are guidelines, not rules.
 
-  - You should define base factories in the singular namespace (e.g. `YourProject.Factory`), and
-  child factories in the plural namespace (e.g. `YourProject.Factories.Users`).
-    - For more info on "base" and "child" factories, see the section `:extends` option.
+  - Base factories use the singular namespace (e.g. `YourProject.Factory`), child factories use
+  the plural namespace (e.g. `YourProject.Factories.Users`).
 
-  - If you are not using "base" and "child" factories, then you should only use the plural
-  namespace for your factories (e.g. `YourProject.Factories.Users`).
+  - If not using base/child factories, use only the plural namespace for your factories.
 
   - Create a separate factory for each context. Your factory module hierarchy should match your
-  context module hierarchy. For example, if you have a context `YourProject.Users`, you should
-  have a factory called `YourProject.Factories.Users`.
+  context module hierarchy. For example, `YourProject.Users` → `YourProject.Factories.Users`.
 
   ## Debugging
 
@@ -158,20 +122,17 @@ defmodule FactoryMan do
   ```
 
   The module above will generate the functions `YourProject.Factory._factory_opts/0` and
-  `YourProject.Factory._something_opts/0`, which can be called in IEx to view all options that
-  have been used to build those factory items:
+  `YourProject.Factory._something_factory_opts/0`, which can be called in IEx to view all options
+  that have been used to build those factory items:
 
   ```elixir
   iex> YourProject.Factory._factory_opts()
   [repo: YourProject.Repo]
 
   iex> YourProject.Factory._something_factory_opts()
-  [repo: YourProject.Repo, name: :something, build: {:build_something, 1}, insert?: false]
+  [repo: YourProject.Repo, struct: Something, insert?: false]
   ```
 
-  ## Common recipes
-
-  FIXME: Add common recipes here (e.g. Add assocs, assoc attrs, etc.)
   """
 
   defmacro __using__(opts \\ []) do
