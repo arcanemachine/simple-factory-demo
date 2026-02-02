@@ -232,12 +232,19 @@ defmodule FactoryMan do
             block: Macro.escape(block, unquote: true)
           ] do
       parent_factory_opts = Module.get_attribute(__MODULE__, :parent_factory_opts)
-      merged_opts = Keyword.merge(parent_factory_opts, opts)
+
+      parent_factory_hooks = Keyword.get(parent_factory_opts, :hooks, [])
+      child_factory_hooks = Keyword.get(opts, :hooks, [])
+      merged_hooks = Keyword.merge(parent_factory_hooks, child_factory_hooks)
+
+      merged_opts = Keyword.merge(parent_factory_opts, opts) |> Keyword.merge(merged_hooks)
 
       @doc "A debug helper function that shows all options for the `#{factory_name}` factory."
       def unquote(String.to_atom("_#{factory_name}_factory_opts"))(), do: unquote(merged_opts)
 
-      hooks = merged_opts[:hooks] || []
+      build_struct? = Keyword.get(merged_opts, :build_struct?, true)
+      hooks = merged_hooks
+      insert_struct? = Keyword.get(merged_opts, :insert_struct?, true)
       repo = merged_opts[:repo]
       struct = merged_opts[:struct]
 
@@ -256,7 +263,7 @@ defmodule FactoryMan do
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
-      if struct != nil and merged_opts[:build_struct?] != false do
+      if struct != nil and build_struct? == true do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
@@ -271,10 +278,9 @@ defmodule FactoryMan do
         is_ecto_schema_factory? =
           Code.ensure_loaded?(struct) and function_exported?(struct, :__schema__, 1)
 
-        is_insertable_ecto_schema_factory? =
-          is_ecto_schema_factory? and not is_nil(repo) and merged_opts[:insert_struct?] != false
+        is_insertable_ecto_schema_factory? = is_ecto_schema_factory? and not is_nil(repo)
 
-        if is_insertable_ecto_schema_factory? do
+        if is_insertable_ecto_schema_factory? and insert_struct? == true do
           # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 

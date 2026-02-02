@@ -31,7 +31,7 @@ defmodule FactoryManDemo.MixProject do
     [
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
-      {:faker, "0.19.0-alpha.1", only: :test}
+      {:faker_fork, "0.19.1", only: :test}
     ]
   end
 
