@@ -1,6 +1,7 @@
 defmodule FactoryMan do
   @moduledoc """
-  Create and customize test factories for generating synthetic data during tests.
+  Create test data factories with automatic struct building, database insertion, and customizable
+  hooks.
 
   ## Getting started
 
@@ -114,7 +115,7 @@ defmodule FactoryMan do
   defmodule YourProject.Factory do
     use FactoryMan, repo: YourProject.Repo
 
-    deffactory something(_ \\ 0), insert_struct?: false do
+    deffactory something(_ \\ 0), insert?: false do
       :something
     end
   end
@@ -129,7 +130,7 @@ defmodule FactoryMan do
   [repo: YourProject.Repo]
 
   iex> YourProject.Factory._something_factory_opts()
-  [repo: YourProject.Repo, struct: Something, insert_struct?: false]
+  [repo: YourProject.Repo, struct: Something, insert?: false]
   ```
 
   """
@@ -191,7 +192,7 @@ defmodule FactoryMan do
 
       build_struct? = merged_opts[:build_struct?]
       hooks = merged_hooks
-      insert_struct? = merged_opts[:insert_struct?]
+      insert? = merged_opts[:insert?]
       repo = merged_opts[:repo]
       struct = merged_opts[:struct]
 
@@ -218,7 +219,7 @@ defmodule FactoryMan do
           ((not is_nil(repo) and Code.ensure_compiled!(struct)) &&
              function_exported?(struct, :__schema__, 1)) and struct.__schema__(:source) != nil
 
-        if is_insertable_ecto_schema_factory? and insert_struct? != false do
+        if is_insertable_ecto_schema_factory? and insert? != false do
           # Generate struct insert functions - builds head inline from shared arg_ast
           def unquote({:"insert_#{factory_name}!", [], [arg_ast]})
 

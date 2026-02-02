@@ -5,29 +5,56 @@ defmodule FactoryManDemo.Factories do
   alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
-  # Insertable struct factory
-  deffactory user(params \\ %{}), struct: User do
-    base_params = %{username: "user-#{System.os_time()}"}
+  # Non-struct factory
+  deffactory non_struct(params \\ %{}) do
+    base_params = %{
+      name: "name-#{System.os_time()}",
+      age: Enum.random(1..100)
+    }
 
     Map.merge(base_params, params)
   end
 
-  # Struct factory (params only, no struct builder)
-  deffactory params_only_user(params \\ %{}), struct: User do
+  # Factory with custom `params` var name
+  deffactory with_custom_param_name(attrs \\ %{}) do
+    base_attrs = %{
+      name: "name-#{System.os_time()}",
+      age: Enum.random(1..100)
+    }
+
+    Map.merge(base_attrs, attrs)
+  end
+
+  # Factory with custom "after_build_params" hook
+  deffactory with_after_build_params_hook(params \\ %{}),
+    hooks: [after_build_params: &__MODULE__.after_build_params/1] do
+    base_params = %{
+      name: "name-#{System.os_time()}",
+      age: Enum.random(1..100)
+    }
+
+    Map.merge(base_params, params)
+  end
+
+  @doc "Puts a 'hello world' key-value pair into the params map."
+  def after_build_params(params), do: params |> Map.put(:hello, :world)
+
+  # Params-only struct factory (has params builder function, but no struct builder function)
+  deffactory params_only(params \\ %{}), struct: User do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)
   end
 
   # Non-insertable struct factory
-  deffactory non_insertable_user(params \\ %{}), struct: User, insert_struct?: false do
+  deffactory non_insertable(params \\ %{}), struct: User, insert?: false do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)
   end
 
   # Insertable struct factory without fallback to default values
-  deffactory user_without_default_fallback(params), struct: User do
+  deffactory no_default_fallback(params), struct: User do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)
@@ -41,6 +68,13 @@ defmodule FactoryManDemo.Factories do
   end
 
   # Factory that extends another factory
+  @doc "Hello world"
+  deffactory user(params \\ %{}), struct: User do
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    Map.merge(base_params, params)
+  end
+
   deffactory extended_user(params \\ %{}), struct: User do
     base_params = %{username: Map.get(params, :username, "extended-user-#{System.os_time()}")}
 
