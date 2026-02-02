@@ -17,18 +17,19 @@ defmodule FactoryMan do
     alias YourProject.Users.User
 
     deffactory user(params \\ %{}), struct: User do
-      %User{
-        id: params[:id],
-        username: Map.get(params, :username, "user-#{System.os_time(:second)}")
-      }
+      base_params = %{username: "user-#{System.os_time(:second)}"}
+
+      Map.merge(base_params, params)
     end
 
     @doc "You can add docstrings for your builder functions, if desired."
     deffactory profile(params \\ %{}), struct: Profile do
-      %Profile{
+      base_params = %{
         id: params[:id],
-        user: Map.get(params, :user, build_user_struct(params[:user]))
+        user: params[:user] || build_user_struct()
       }
+
+      Map.merge(base_params, params)
     end
   end
   ```
@@ -82,10 +83,9 @@ defmodule FactoryMan do
     alias YourProject.Users.User
 
     deffactory user(params \\ %{}), struct: User do
-      %User{
-        id: params[:id],
-        username: Map.get(params, :username, Factory.generate_random_string(12))
-      }
+      base_params = %{username: Factory.generate_random_string(12)}
+
+      Map.merge(base_params, params)
     end
   end
   ```
