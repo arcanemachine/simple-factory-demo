@@ -34,6 +34,8 @@ defmodule FactoryManDemo.Factories do
 
   # Factory without default - requires params to be passed
   deffactory required_user(params), struct: User do
-    %{username: Map.get(params, :username, "required-user-#{System.os_time()}")}
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    Map.merge(base_params, params)
   end
 end
