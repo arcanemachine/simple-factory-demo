@@ -93,7 +93,8 @@ defmodule FactoryManDemo.FactoriesTest do
     assert Repo.preload(author, :user).user == user
   end
 
+  @tag :skip
   test "can insert a factory product with assocs from another factory product" do
-    # asse
+    raise "TODO: FIXME"
   end
 end
