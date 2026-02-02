@@ -5,7 +5,15 @@ defmodule FactoryManDemo.Factories do
   alias FactoryManDemo.Authors.Author
   alias FactoryManDemo.Users.User
 
+  # Factory with defaults
   deffactory user(params \\ %{}), struct: User do
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    Map.merge(base_params, params)
+  end
+
+  # Factory without defaults
+  deffactory required_user(params), struct: User do
     base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)
@@ -28,13 +36,6 @@ defmodule FactoryManDemo.Factories do
       user: params[:user] || build_user_struct(),
       name: "Some author"
     }
-
-    Map.merge(base_params, params)
-  end
-
-  # Factory without default - requires params to be passed
-  deffactory required_user(params), struct: User do
-    base_params = %{username: "user-#{System.os_time()}"}
 
     Map.merge(base_params, params)
   end
