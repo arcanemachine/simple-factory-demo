@@ -220,11 +220,14 @@ defmodule FactoryMan do
       case factory_head do
         {factory_name, _, [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} ->
           {factory_name, factory_arg_name, factory_arg_ctx, default_ast}
+
+        {factory_name, _, [{factory_arg_name, _, factory_arg_ctx}]} ->
+          {factory_name, factory_arg_name, factory_arg_ctx, nil}
       end
 
     # Double-escape: bind_quoted evaluates once (removing one layer of escaping),
     # leaving the original AST that can be unquoted into generated code.
-    escaped_default = Macro.escape(default_ast, unquote: true)
+    escaped_default = if default_ast, do: Macro.escape(default_ast, unquote: true), else: nil
 
     quote bind_quoted: [
             factory_name: factory_name,
