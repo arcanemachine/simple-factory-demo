@@ -216,8 +216,11 @@ defmodule FactoryMan do
   end
 
   defmacro deffactory(factory_head, opts \\ [], do: block) do
-    {factory_name, _, [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} =
-      factory_head
+    {factory_name, factory_arg_name, factory_arg_ctx, default_ast} =
+      case factory_head do
+        {factory_name, _, [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} ->
+          {factory_name, factory_arg_name, factory_arg_ctx, default_ast}
+      end
 
     # Double-escape: bind_quoted evaluates once (removing one layer of escaping),
     # leaving the original AST that can be unquoted into generated code.
@@ -242,9 +245,9 @@ defmodule FactoryMan do
       @doc "A debug helper function that shows all options for the `#{factory_name}` factory."
       def unquote(String.to_atom("_#{factory_name}_factory_opts"))(), do: unquote(merged_opts)
 
-      build_struct? = Keyword.get(merged_opts, :build_struct?, true)
+      build_struct? = merged_opts[:build_struct?]
       hooks = merged_hooks
-      insert_struct? = Keyword.get(merged_opts, :insert_struct?, true)
+      insert_struct? = merged_opts[:insert_struct?]
       repo = merged_opts[:repo]
       struct = merged_opts[:struct]
 
@@ -263,7 +266,7 @@ defmodule FactoryMan do
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
-      if struct != nil and build_struct? == true do
+      if struct != nil and build_struct? != false do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
@@ -275,12 +278,11 @@ defmodule FactoryMan do
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
         end
 
-        is_ecto_schema_factory? =
-          Code.ensure_loaded?(struct) and function_exported?(struct, :__schema__, 1)
+        is_insertable_ecto_schema_factory? =
+          ((not is_nil(repo) and Code.ensure_compiled!(struct)) &&
+             function_exported?(struct, :__schema__, 1)) and struct.__schema__(:source) != nil
 
-        is_insertable_ecto_schema_factory? = is_ecto_schema_factory? and not is_nil(repo)
-
-        if is_insertable_ecto_schema_factory? and insert_struct? == true do
+        if is_insertable_ecto_schema_factory? and insert_struct? != false do
           # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 
@@ -327,7 +329,7 @@ defmodule FactoryMan do
           not is_atom(factory_param) ->
             raise "the first factory param must be an atom or Ecto schema module"
 
-          Code.ensure_loaded?(factory_param) and
+          Code.ensure_compiled!(factory_param) &&
               function_exported?(factory_param, :__struct__, 0) ->
             if merged_opts[:struct] do
               raise ArgumentError,
