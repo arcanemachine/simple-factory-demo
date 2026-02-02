@@ -219,25 +219,13 @@ defmodule FactoryMan do
     # Extract factory name, the arg AST (preserving any default), and the user's var name
     {factory_name, arg_ast, user_var_name} =
       case factory_head do
-        {name, _, [{:\\, _, [arg, _]} = arg_ast]} ->
-          {var, _, _} = arg
-          {name, arg_ast, var}
-
-        {name, _, [arg]} ->
-          {var, _, _} = arg
-          {name, arg, var}
+        {name, _, [{:\\, _, [{var, _, _}, _]} = arg_ast]} -> {name, arg_ast, var}
+        {name, _, [{var, _, _} = arg]} -> {name, arg, var}
       end
-
-    # Build function heads by just changing the name - preserves defaults automatically
-    build_params_head = {:"build_#{factory_name}_params", [], [arg_ast]}
-    build_struct_head = {:"build_#{factory_name}_struct", [], [arg_ast]}
-    insert_head = {:"insert_#{factory_name}!", [], [arg_ast]}
 
     quote bind_quoted: [
             factory_name: factory_name,
-            build_params_head: Macro.escape(build_params_head, unquote: true),
-            build_struct_head: Macro.escape(build_struct_head, unquote: true),
-            insert_head: Macro.escape(insert_head, unquote: true),
+            arg_ast: Macro.escape(arg_ast, unquote: true),
             user_var_name: user_var_name,
             opts: opts,
             block: Macro.escape(block, unquote: true)
@@ -259,8 +247,8 @@ defmodule FactoryMan do
       repo = merged_opts[:repo]
       struct = merged_opts[:struct]
 
-      # Generate params builder function - uses original arg pattern with user's variable
-      def unquote(build_params_head) do
+      # Generate params builder function - builds head inline from shared arg_ast
+      def unquote({:"build_#{factory_name}_params", [], [arg_ast]}) do
         unquote(Macro.var(user_var_name, nil)) =
           FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
             unquote(Macro.var(user_var_name, nil))
@@ -271,8 +259,8 @@ defmodule FactoryMan do
       end
 
       if struct != nil and build_struct? != false do
-        # Generate struct builder function - uses same arg pattern
-        def unquote(build_struct_head) do
+        # Generate struct builder function - builds head inline from shared arg_ast
+        def unquote({:"build_#{factory_name}_struct", [], [arg_ast]}) do
           unquote(Macro.var(user_var_name, nil))
           |> unquote(:"build_#{factory_name}_params")()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
@@ -285,8 +273,8 @@ defmodule FactoryMan do
              function_exported?(struct, :__schema__, 1)) and struct.__schema__(:source) != nil
 
         if is_insertable_ecto_schema_factory? and insert_struct? != false do
-          # Generate struct insert functions
-          def unquote(insert_head)
+          # Generate struct insert functions - builds head inline from shared arg_ast
+          def unquote({:"insert_#{factory_name}!", [], [arg_ast]})
 
           def unquote(:"insert_#{factory_name}!")(repo_insert_opts)
               when is_list(repo_insert_opts) do
