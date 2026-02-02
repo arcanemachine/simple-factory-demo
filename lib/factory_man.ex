@@ -216,24 +216,29 @@ defmodule FactoryMan do
   end
 
   defmacro deffactory(factory_head, opts \\ [], do: block) do
-    {factory_name, factory_arg_name, factory_arg_ctx, default_ast} =
+    # Extract factory name, the arg AST (preserving any default), and the user's var name
+    {factory_name, arg_ast, user_var_name} =
       case factory_head do
-        {factory_name, _, [{:\\, _, [{factory_arg_name, _, factory_arg_ctx}, default_ast]}]} ->
-          {factory_name, factory_arg_name, factory_arg_ctx, default_ast}
+        {name, _, [{:\\, _, [arg, _]} = arg_ast]} ->
+          {var, _, _} = arg
+          {name, arg_ast, var}
 
-        {factory_name, _, [{factory_arg_name, _, factory_arg_ctx}]} ->
-          {factory_name, factory_arg_name, factory_arg_ctx, nil}
+        {name, _, [arg]} ->
+          {var, _, _} = arg
+          {name, arg, var}
       end
 
-    # Double-escape: bind_quoted evaluates once (removing one layer of escaping),
-    # leaving the original AST that can be unquoted into generated code.
-    escaped_default = if default_ast, do: Macro.escape(default_ast, unquote: true), else: nil
+    # Build function heads by just changing the name - preserves defaults automatically
+    build_params_head = {:"build_#{factory_name}_params", [], [arg_ast]}
+    build_struct_head = {:"build_#{factory_name}_struct", [], [arg_ast]}
+    insert_head = {:"insert_#{factory_name}!", [], [arg_ast]}
 
     quote bind_quoted: [
             factory_name: factory_name,
-            factory_arg_ctx: factory_arg_ctx,
-            default_value_ast: escaped_default,
-            factory_arg_name: factory_arg_name,
+            build_params_head: Macro.escape(build_params_head, unquote: true),
+            build_struct_head: Macro.escape(build_struct_head, unquote: true),
+            insert_head: Macro.escape(insert_head, unquote: true),
+            user_var_name: user_var_name,
             opts: opts,
             block: Macro.escape(block, unquote: true)
           ] do
@@ -254,53 +259,25 @@ defmodule FactoryMan do
       repo = merged_opts[:repo]
       struct = merged_opts[:struct]
 
-      # Generate params builder function
-      build_params_function_name = :"build_#{factory_name}_params"
+      # Generate params builder function - uses original arg pattern with user's variable
+      def unquote(build_params_head) do
+        unquote(Macro.var(user_var_name, nil)) =
+          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
+            unquote(Macro.var(user_var_name, nil))
+          )
 
-      if default_value_ast do
-        def unquote(build_params_function_name)(
-              unquote(Macro.var(:input_params, nil)) \\ unquote(default_value_ast)
-            ) do
-          unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
-            FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
-              unquote(Macro.var(:input_params, nil))
-            )
-
-          unquote(block)
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
-        end
-      else
-        def unquote(build_params_function_name)(unquote(Macro.var(:input_params, nil))) do
-          unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
-            FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
-              unquote(Macro.var(:input_params, nil))
-            )
-
-          unquote(block)
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
-        end
+        unquote(block)
+        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
       if struct != nil and build_struct? != false do
-        # Generate struct builder function
-        build_struct_function_name = :"build_#{factory_name}_struct"
-
-        if default_value_ast do
-          def unquote(build_struct_function_name)(params \\ unquote(default_value_ast)) do
-            params
-            |> unquote(build_params_function_name)()
-            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
-            |> then(&struct!(unquote(struct), &1))
-            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
-          end
-        else
-          def unquote(build_struct_function_name)(params) do
-            params
-            |> unquote(build_params_function_name)()
-            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
-            |> then(&struct!(unquote(struct), &1))
-            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
-          end
+        # Generate struct builder function - uses same arg pattern
+        def unquote(build_struct_head) do
+          unquote(Macro.var(user_var_name, nil))
+          |> unquote(:"build_#{factory_name}_params")()
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
+          |> then(&struct!(unquote(struct), &1))
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
         end
 
         is_insertable_ecto_schema_factory? =
@@ -308,25 +285,25 @@ defmodule FactoryMan do
              function_exported?(struct, :__schema__, 1)) and struct.__schema__(:source) != nil
 
         if is_insertable_ecto_schema_factory? and insert_struct? != false do
-          # Generate struct insert function
-          insert_function_name = :"insert_#{factory_name}!"
+          # Generate struct insert functions
+          def unquote(insert_head)
 
-          if default_value_ast do
-            def unquote(insert_function_name)(params \\ unquote(default_value_ast))
-          end
-
-          def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
-            unquote(insert_function_name)(%{}, repo_insert_opts)
-          end
-
-          def unquote(insert_function_name)(params) do
-            unquote(insert_function_name)(params, [])
-          end
-
-          def unquote(insert_function_name)(params, repo_insert_opts)
+          def unquote(:"insert_#{factory_name}!")(repo_insert_opts)
               when is_list(repo_insert_opts) do
-            params
-            |> unquote(build_struct_function_name)()
+            unquote(:"insert_#{factory_name}!")(%{}, repo_insert_opts)
+          end
+
+          def unquote(:"insert_#{factory_name}!")(unquote(Macro.var(user_var_name, nil))) do
+            unquote(:"insert_#{factory_name}!")(unquote(Macro.var(user_var_name, nil)), [])
+          end
+
+          def unquote(:"insert_#{factory_name}!")(
+                unquote(Macro.var(user_var_name, nil)),
+                repo_insert_opts
+              )
+              when is_list(repo_insert_opts) do
+            unquote(Macro.var(user_var_name, nil))
+            |> unquote(:"build_#{factory_name}_struct")()
             |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
             |> unquote(repo).insert!(repo_insert_opts)
             |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
