@@ -188,7 +188,7 @@ defmodule FactoryMan do
 
   defmacro __using__(opts \\ []) do
     quote do
-      import unquote(__MODULE__), only: [deffactory: 2, deffactory: 3, factory: 2, factory: 3]
+      import unquote(__MODULE__), only: [deffactory: 2, deffactory: 3]
 
       parent_factory_opts =
         case unquote(opts)[:extends] do
