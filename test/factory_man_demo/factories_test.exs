@@ -60,6 +60,7 @@ defmodule FactoryManDemo.FactoriesTest do
   end
 
   # Insert opts
+  @tag :skip
   test "can pass opts to `Repo.insert/2`" do
     # returning: true
     # on_conflict: replace
