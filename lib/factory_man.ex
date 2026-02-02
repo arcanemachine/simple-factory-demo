@@ -32,30 +32,20 @@ defmodule FactoryMan do
     alias YourProject.Users.Profile
     alias YourProject.Users.User
 
-    factory(
-      name: :user,
-      build:
-        def build_user(params \\ %{}) do
-          %User{
-            id: params[:id],
-            username: Map.get(params, :username, "user-#{System.os_time(:second)}")
-          }
-        end
-    )
+    deffactory user(params \\ %{}), struct: User do
+      %User{
+        id: params[:id],
+        username: Map.get(params, :username, "user-#{System.os_time(:second)}")
+      }
+    end
 
-    factory(
-      name: :user,
-      build:
-        (
-          @doc "You can add docstrings for your builder functions, if desired."
-          def build_profile(params \\ %{}) do
-            %Profile{
-              id: params[:id],
-              user: Map.get(params, :user, build_user(params[:user]))
-            }
-          end
-        )
-    )
+    @doc "You can add docstrings for your builder functions, if desired."
+    deffactory profile(params \\ %{}), struct: Profile do
+      %Profile{
+        id: params[:id],
+        user: Map.get(params, :user, build_user_struct(params[:user]))
+      }
+    end
   end
   ```
 
@@ -124,16 +114,12 @@ defmodule FactoryMan do
     alias YourProject.Factory
     alias YourProject.Users.User
 
-    factory(
-      name: :user,
-      build:
-        def build_user(params \\ %{}) do
-          %User{
-            id: params[:id],
-            username: Map.get(params, :username, Factory.generate_random_string(12))
-          }
-        end
-    )
+    deffactory user(params \\ %{}), struct: User do
+      %User{
+        id: params[:id],
+        username: Map.get(params, :username, Factory.generate_random_string(12))
+      }
+    end
   end
   ```
 
@@ -165,7 +151,9 @@ defmodule FactoryMan do
   defmodule YourProject.Factory do
     use FactoryMan, repo: YourProject.Repo
 
-    factory(name: :something, build: def(build_something(_ \\ 0), do: :something), insert?: false)
+    deffactory something(_ \\ 0), insert?: false do
+      :something
+    end
   end
   ```
 
