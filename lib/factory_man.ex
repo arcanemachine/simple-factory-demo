@@ -115,7 +115,7 @@ defmodule FactoryMan do
   defmodule YourProject.Factory do
     use FactoryMan, repo: YourProject.Repo
 
-    deffactory something(_ \\ 0), insert?: false do
+    deffactory something(_ \\ 0), insert_struct?: false do
       :something
     end
   end
@@ -130,7 +130,7 @@ defmodule FactoryMan do
   [repo: YourProject.Repo]
 
   iex> YourProject.Factory._something_factory_opts()
-  [repo: YourProject.Repo, struct: Something, insert?: false]
+  [repo: YourProject.Repo, struct: Something, insert_struct?: false]
   ```
 
   """
