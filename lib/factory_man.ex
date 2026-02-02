@@ -257,28 +257,50 @@ defmodule FactoryMan do
       # Generate params builder function
       build_params_function_name = :"build_#{factory_name}_params"
 
-      def unquote(build_params_function_name)(
-            unquote(Macro.var(:input_params, nil)) \\ unquote(default_value_ast)
-          ) do
-        unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
-          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
-            unquote(Macro.var(:input_params, nil))
-          )
+      if default_value_ast do
+        def unquote(build_params_function_name)(
+              unquote(Macro.var(:input_params, nil)) \\ unquote(default_value_ast)
+            ) do
+          unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
+            FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
+              unquote(Macro.var(:input_params, nil))
+            )
 
-        unquote(block)
-        |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
+          unquote(block)
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
+        end
+      else
+        def unquote(build_params_function_name)(unquote(Macro.var(:input_params, nil))) do
+          unquote(Macro.var(factory_arg_name, factory_arg_ctx)) =
+            FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
+              unquote(Macro.var(:input_params, nil))
+            )
+
+          unquote(block)
+          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
+        end
       end
 
       if struct != nil and build_struct? != false do
         # Generate struct builder function
         build_struct_function_name = :"build_#{factory_name}_struct"
 
-        def unquote(build_struct_function_name)(params \\ unquote(default_value_ast)) do
-          params
-          |> unquote(build_params_function_name)()
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
-          |> then(&struct!(unquote(struct), &1))
-          |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
+        if default_value_ast do
+          def unquote(build_struct_function_name)(params \\ unquote(default_value_ast)) do
+            params
+            |> unquote(build_params_function_name)()
+            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
+            |> then(&struct!(unquote(struct), &1))
+            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
+          end
+        else
+          def unquote(build_struct_function_name)(params) do
+            params
+            |> unquote(build_params_function_name)()
+            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
+            |> then(&struct!(unquote(struct), &1))
+            |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
+          end
         end
 
         is_insertable_ecto_schema_factory? =
@@ -289,7 +311,9 @@ defmodule FactoryMan do
           # Generate struct insert function
           insert_function_name = :"insert_#{factory_name}!"
 
-          def unquote(insert_function_name)(params \\ unquote(default_value_ast))
+          if default_value_ast do
+            def unquote(insert_function_name)(params \\ unquote(default_value_ast))
+          end
 
           def unquote(insert_function_name)(repo_insert_opts) when is_list(repo_insert_opts) do
             unquote(insert_function_name)(%{}, repo_insert_opts)
