@@ -216,17 +216,17 @@ defmodule FactoryMan do
   end
 
   defmacro deffactory(factory_head, opts \\ [], do: block) do
-    # Extract factory name, the arg AST (preserving any default), and the user's var name
-    {factory_name, arg_ast, user_var_name} =
+    # Extract factory name, the arg AST (preserving any default), and the user's var
+    {factory_name, arg_ast, user_var} =
       case factory_head do
-        {name, _, [{:\\, _, [{var, _, _}, _]} = arg_ast]} -> {name, arg_ast, var}
-        {name, _, [{var, _, _} = arg]} -> {name, arg, var}
+        {name, _, [{:\\, _, [{var, _, _}, _]} = arg_ast]} -> {name, arg_ast, Macro.var(var, nil)}
+        {name, _, [{var, _, _} = arg]} -> {name, arg, Macro.var(var, nil)}
       end
 
     quote bind_quoted: [
             factory_name: factory_name,
             arg_ast: Macro.escape(arg_ast, unquote: true),
-            user_var_name: user_var_name,
+            user_var: Macro.escape(user_var, unquote: true),
             opts: opts,
             block: Macro.escape(block, unquote: true)
           ] do
@@ -249,10 +249,8 @@ defmodule FactoryMan do
 
       # Generate params builder function - builds head inline from shared arg_ast
       def unquote({:"build_#{factory_name}_params", [], [arg_ast]}) do
-        unquote(Macro.var(user_var_name, nil)) =
-          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(
-            unquote(Macro.var(user_var_name, nil))
-          )
+        unquote(user_var) =
+          FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(unquote(user_var))
 
         unquote(block)
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
@@ -261,7 +259,7 @@ defmodule FactoryMan do
       if struct != nil and build_struct? != false do
         # Generate struct builder function - builds head inline from shared arg_ast
         def unquote({:"build_#{factory_name}_struct", [], [arg_ast]}) do
-          unquote(Macro.var(user_var_name, nil))
+          unquote(user_var)
           |> unquote(:"build_#{factory_name}_params")()
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
           |> then(&struct!(unquote(struct), &1))
@@ -281,16 +279,16 @@ defmodule FactoryMan do
             unquote(:"insert_#{factory_name}!")(%{}, repo_insert_opts)
           end
 
-          def unquote(:"insert_#{factory_name}!")(unquote(Macro.var(user_var_name, nil))) do
-            unquote(:"insert_#{factory_name}!")(unquote(Macro.var(user_var_name, nil)), [])
+          def unquote(:"insert_#{factory_name}!")(unquote(user_var)) do
+            unquote(:"insert_#{factory_name}!")(unquote(user_var), [])
           end
 
           def unquote(:"insert_#{factory_name}!")(
-                unquote(Macro.var(user_var_name, nil)),
+                unquote(user_var),
                 repo_insert_opts
               )
               when is_list(repo_insert_opts) do
-            unquote(Macro.var(user_var_name, nil))
+            unquote(user_var)
             |> unquote(:"build_#{factory_name}_struct")()
             |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
             |> unquote(repo).insert!(repo_insert_opts)
