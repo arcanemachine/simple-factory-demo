@@ -1,147 +1,340 @@
 defmodule FactoryMan do
   @moduledoc """
-  Create test data factories with automatic struct building, database insertion, and customizable
-  hooks.
+  Test data factories with automatic struct building, database insertion, and customizable hooks.
 
-  ## Getting started
+  ## Usage
 
-  ### Create your first factory
+  Create a factory module with struct factories for Ecto schemas you need to persist:
 
-  Create a factory module in the desired location:
+      defmodule MyApp.Factories.Users do
+        use FactoryMan, repo: MyApp.Repo
 
-  `your_project/test/support/factories/users.exs`
-  ```elixir
-  defmodule YourProject.Factories.Users do
-    use FactoryMan, repo: YourProject.Repo
+        alias MyApp.Users.User
 
-    alias YourProject.Users.Profile
-    alias YourProject.Users.User
+        deffactory user(params \\ %{}), struct: User do
+          base_params = %{username: "user-#{System.os_time()}"}
 
-    deffactory user(params \\ %{}), struct: User do
-      base_params = %{username: "user-#{System.os_time()}"}
+          Map.merge(base_params, params)
+        end
+      end
 
-      Map.merge(base_params, params)
-    end
+  Create non-struct factories for data that never touches the database, like API payloads or
+  config maps:
 
-    deffactory profile(params \\ %{}), struct: Profile do
-      base_params = %{
-        user: params[:user] || build_user_struct()
-      }
+      defmodule MyApp.Factories.Helpers do
+        use FactoryMan
 
-      Map.merge(base_params, params)
-    end
-  end
-  ```
+        deffactory api_payload(params \\ %{}) do
+          base_params = %{
+            data: "value",
+            timestamp: DateTime.utc_now()
+          }
 
-  Now, you can use this factory in the configured environment(s):
+          Map.merge(base_params, params)
+        end
+      end
 
-  ```elixir
-  iex> built_user = YourProject.Factories.Users.build_user(%{username: "some_user"})
-  %YourProject.Users.User{id: nil, username: "some_user"}
+  **Struct factories** (with `struct:` option) generate:
 
-  iex> inserted_user = YourProject.Factories.Users.insert_user!(%{username: "some_user"})
-  %YourProject.Users.User{id: 1, username: "some_user"}
+      build_user_params/0, build_user_params/1       # Build params map
+      build_user_struct/0, build_user_struct/1         # Build struct (not persisted)
+      insert_user!/0, insert_user!/1, insert_user!/2   # Insert into database
 
-  iex> inserted_profile_1 = YourProject.Factories.Users.insert_profile!()
-  %YourProject.Users.Profile{id: 1, user: %YourProject.Users.User{id: 2, username: "user-12345"}}
+      # List variants
+      build_user_params_list/1, build_user_params_list/2
+      build_user_struct_list/1, build_user_struct_list/2
+      insert_user_list!/1, insert_user_list!/2, insert_user_list!/3
 
-  iex> inserted_profile_2 = YourProject.Factories.Users.insert_profile!(%{user: inserted_user})
-  %YourProject.Users.Profile{id: 1, user: %YourProject.Users.User{id: 1, username: "some_user"}}
-  ```
+  **Non-struct factories** (without `struct:` option) generate:
 
-  ## Factory module options
+      build_api_payload_params/0, build_api_payload_params/1  # Build params map only
+      build_api_payload_params_list/1, build_api_payload_params_list/2
 
-  #### `:extends` (module) - Reduce boilerplate by inheriting options from a parent factory
+  ## Defining Factories
 
-  You may create a "parent" factory module, which can be extended to produce "child" factories
-  (which inherit the options set in any parent factory module(s)):
+  The `deffactory` macro works like defining a function. You specify the factory name and a single
+  parameter (e.g. `param`), with an optional default value (e.g. `%{}`):
 
-  - Create a base factory:
+      deffactory user(params \\ %{}), struct: User do
+        base_params = %{username: "user-#{System.os_time()}"}
 
-  `your_project/test/support/factory.ex`
-  ```
-  defmodule YourProject.Factory do
-    use FactoryMan, repo: YourProject.Repo
+        Map.merge(base_params, params)
+      end
 
-    # You may also define common factory helper functions in this module
+  You can name the parameter whatever you want:
 
-    @doc "Generate a random string of a given `length`."
-    def generate_random_string(length),
-      do: crypto.strong_rand_bytes(length) |> Base.encode64() |> String.slice(0, length)
-  end
-  ```
+      deffactory user(attrs \\ %{}), struct: User do
+        base_attrs = %{username: "user-#{System.os_time()}"}
 
-  - When creating a child factory, use the `:extends` option to extend the base factory:
+        Map.merge(base_attrs, attrs)
+      end
 
-  `your_project/test/support/factories/users.ex`
-  ```
-  defmodule YourProject.Factories.Users do
-    use FactoryMan, extends: YourProject.Factory
+  **Required parameters** (no default) when no default fallback is desired:
 
-    alias YourProject.Factory
-    alias YourProject.Users.User
+      deffactory user_from_config(config), struct: User do
+        # Factory won't compile without config argument
+        base_params = %{username: config[:username] || "default"}
 
-    deffactory user(params \\ %{}), struct: User do
-      base_params = %{username: Factory.generate_random_string(12)}
+        Map.merge(base_params, config)
+      end
 
-      Map.merge(base_params, params)
-    end
-  end
-  ```
+  **Building factories on other factories:**
 
-  This child factory will now use any options set in the parent factory (repo, hooks, etc.).
+  Call other factory functions within a factory definition to automatically create required
+  associations:
 
-  > #### Tip {: .tip}
-  >
-  > All factory options cascade from parent to child. You can set any option at whatever level you
-  > want.
+      deffactory author(params \\ %{}), struct: Author do
+        base_params = %{
+          name: "Test Author",
+          # Automatically build associated user if not provided
+          user: params[:user] || build_user_struct()
+        }
 
-  ## Factory conventions
+        Map.merge(base_params, params)
+      end
 
-  > NOTE: These conventions are guidelines, not rules.
+  Extend and customize existing factories:
 
-  - Base factories use the singular namespace (e.g. `YourProject.Factory`), child factories use
-  the plural namespace (e.g. `YourProject.Factories.Users`).
+      deffactory user(params \\ %{}), struct: User do
+        base_params = %{username: "user-#{System.os_time()}"}
 
-  - If not using base/child factories, use only the plural namespace for your factories.
+        Map.merge(base_params, params)
+      end
 
-  - Create a separate factory for each context. Your factory module hierarchy should match your
-  context module hierarchy. For example, `YourProject.Users` → `YourProject.Factories.Users`.
+      deffactory admin(params \\ %{}), struct: User do
+        # Reuse user factory, override role
+        base_params = %{role: "admin"}
+
+        params
+        |> build_user_params()    # Get base user params
+        |> Map.merge(base_params) # Add admin overrides
+        |> Map.merge(params)      # Apply caller overrides
+      end
+
+  ## Factory Options
+
+  Options cascade from parent module to child module to individual factory, letting you configure
+  behavior at whichever level is right for you:
+
+  **Module-level options** (set with `use FactoryMan`):
+  - `:repo` - Ecto repo for database operations (required for insert functions)
+  - `:extends` - Parent factory module to inherit common configuration
+  - `:hooks` - Hooks applied to all factories in the module
+
+  **Factory-level options** (set with `deffactory`):
+  - `:struct` - Ecto schema struct to build (generates struct and insert functions)
+  - `:insert?` - Set to `false` to prevent accidental database insertion (e.g., for read-only test
+  data)
+  - `:build_struct?` - Set to `false` when you only need raw params (e.g., for API request bodies)
+  - `:hooks` - Additional hooks merged with module-level hooks
+
+  ## Factory Inheritance
+
+  Use inheritance to avoid repeating common configuration across multiple factory modules:
+
+      defmodule MyApp.Factory do
+        use FactoryMan, repo: MyApp.Repo
+
+        def generate_username, do: "user-#{System.os_time()}"
+      end
+
+  Child factories inherit the parent's repo, hooks, and helper functions via `:extends`:
+
+      defmodule MyApp.Factories.Users do
+        use FactoryMan, extends: MyApp.Factory
+
+        deffactory user(params \\ %{}), struct: User do
+          %{username: generate_username()} |> Map.merge(params)
+        end
+      end
+
+  **Options cascade through all levels:**
+  Parent module options → Child module options → Individual factory options.
+  Later options override earlier ones, letting you customize at any level.
+
+      defmodule MyApp.Factory do
+        use FactoryMan,
+          repo: MyApp.Repo,
+          hooks: [after_insert: &reset_assocs/1]
+      end
+
+      defmodule MyApp.Factories.Users do
+        use FactoryMan,
+          extends: MyApp.Factory,
+          hooks: [before_build_params: &log_build/1]  # Merged with parent hooks
+
+        # Inherits :repo and both hooks from MyApp.Factory
+        deffactory user(params \\ %{}), struct: User do
+          base_params = %{username: "user-#{System.os_time()}"}
+
+          Map.merge(base_params, params)
+        end
+
+        # Override hooks for this specific factory only
+        deffactory admin(params \\ %{}), struct: User, hooks: [after_insert: &promote_to_admin/1] do
+          base_params = %{username: "admin-#{System.os_time()}"}
+
+          Map.merge(base_params, params)
+        end
+
+        # Disable insert for this factory (build only)
+        deffactory draft_user(params \\ %{}), struct: User, insert?: false do
+          base_params = %{username: "draft-#{System.os_time()}"}
+
+          Map.merge(base_params, params)
+        end
+
+        # Disable struct building (params only)
+        deffactory user_config(params \\ %{}), struct: User, build_struct?: false do
+          base_params = %{theme: "dark", notifications: true}
+
+          Map.merge(base_params, params)
+        end
+      end
+
+  ## List Factories
+
+  Create multiple records:
+
+      # Build 3 structs
+      MyApp.Factories.Users.build_user_struct_list(3)
+      # => [%User{id: nil, ...}, %User{id: nil, ...}, %User{id: nil, ...}]
+
+      # Insert 3 users
+      MyApp.Factories.Users.insert_user_list!(3)
+      # => [%User{id: 1, ...}, %User{id: 2, ...}, %User{id: 3, ...}]
+
+      # With custom params
+      MyApp.Factories.Users.insert_user_list!(2, %{role: "admin"}, returning: true)
+
+  Each item is evaluated independently, so timestamps and sequences generate unique values.
+
+  ## Sequence Generation
+
+  Generate unique values across test runs:
+
+  Basic sequences:
+
+      deffactory user(params \\ %{}), struct: User do
+        base_params = %{username: sequence("user")}  # user0, user1, user2...
+
+        Map.merge(base_params, params)
+      end
+
+  Custom formatters:
+
+      deffactory user(params \\ %{}), struct: User do
+        base_params = %{
+          email: sequence(:email, fn n -> "user\#{n}@example.com" end)
+        }
+
+        Map.merge(base_params, params)
+      end
+
+  Cyclical sequences:
+
+      deffactory user(params \\ %{}), struct: User do
+        base_params = %{
+          role: sequence(:role, ["admin", "moderator", "user"])
+        }
+
+        Map.merge(base_params, params)
+      end
+
+  Custom starting value:
+
+      deffactory order(params \\ %{}), struct: Order do
+        base_params = %{
+          order_number: sequence(:order, fn n -> "ORD-\#{n}" end, start_at: 1000)
+        }
+
+        Map.merge(base_params, params)
+      end
+
+  Reset sequences in test setup for predictable values:
+
+      setup do
+        FactoryMan.Sequence.reset()
+        :ok
+      end
+
+  ## Lazy Evaluation
+
+  Functions in factory params are evaluated at build time:
+
+      deffactory user(params \\ %{}), struct: User do
+        base_params = %{
+          username: "user-#{System.os_time()}",
+          # 0-arity: called with no arguments
+          created_at: fn -> DateTime.utc_now() end,
+          # 1-arity: receives the parent factory
+          display_name: fn user -> "\#{user.username} (User)" end
+        }
+
+        Map.merge(base_params, params)
+      end
+
+  ## Hooks
+
+  Transform data at specific stages. Every factory action has both a `before` and `after` hook,
+  letting you intercept and modify data at the exact point you need:
+
+  | Action               | Before Hook            | After Hook            |
+  | -------------------- | ---------------------- | --------------------- |
+  | Build params         | `:before_build_params` | `:after_build_params` |
+  | Build struct         | `:before_build_struct` | `:after_build_struct` |
+  | Insert into database | `:before_insert`       | `:after_insert`       |
+
+  Example: Reset loaded associations after insert to match a fresh database query:
+
+      defmodule MyApp.Factory do
+        use FactoryMan,
+          repo: MyApp.Repo,
+          hooks: [after_insert: &__MODULE__.reset_assocs/1]
+
+        def reset_assocs(struct) do
+          Ecto.reset_fields(struct, struct.__struct__.__schema__(:associations))
+        end
+      end
+
+  ## Embedded Schemas
+
+  Factories for embedded schemas work like regular struct factories but without database
+  insertion:
+
+      defmodule MyApp.Factories.Settings do
+        use FactoryMan, extends: MyApp.Factory
+
+        alias MyApp.Users.Settings
+
+        deffactory settings(params \\ %{}), struct: Settings do
+          base_params = %{
+            theme: "dark",
+            notifications: true
+          }
+
+          Map.merge(base_params, params)
+        end
+      end
+
+  Embedded schemas generate `build_*_params` and `build_*_struct` functions only (as well as
+  the matching `*_list` functions), but do not generate any `insert_*` functions.
 
   ## Debugging
 
-  A debug helper function is generated for each factory (both for the factory module, and for each
-  factory macro) which shows all options that have been passed into the factory item. This
-  function may be useful during debugging. For example:
+  FactoryMan generates debug functions showing configured options:
 
-  `your_project/test/support/factory.ex`
-  ```
-  defmodule YourProject.Factory do
-    use FactoryMan, repo: YourProject.Repo
+      iex> MyApp.Factory._factory_opts()
+      [repo: MyApp.Repo]
 
-    deffactory something(_ \\ 0), insert?: false do
-      :something
-    end
-  end
-  ```
-
-  The module above will generate the functions `YourProject.Factory._factory_opts/0` and
-  `YourProject.Factory._something_factory_opts/0`, which can be called in IEx to view all options
-  that have been used to build those factory items:
-
-  ```elixir
-  iex> YourProject.Factory._factory_opts()
-  [repo: YourProject.Repo]
-
-  iex> YourProject.Factory._something_factory_opts()
-  [repo: YourProject.Repo, struct: Something, insert?: false]
-  ```
-
+      iex> MyApp.Factories.Users._user_factory_opts()
+      [repo: MyApp.Repo, struct: User]
   """
 
   defmacro __using__(opts \\ []) do
     quote do
-      import unquote(__MODULE__), only: [deffactory: 2, deffactory: 3, sequence: 1, sequence: 2, sequence: 3]
+      import unquote(__MODULE__),
+        only: [deffactory: 2, deffactory: 3, sequence: 1, sequence: 2, sequence: 3]
 
       parent_factory_opts =
         case unquote(opts)[:extends] do

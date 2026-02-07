@@ -1,53 +1,78 @@
-# FactoryManDemo
+# FactoryMan
 
-A demo repo for the [FactoryMan](https://github.com/arcanemachine/simple-factory/) project.
+Factory definitions for Elixir test suites.
 
-This repo shows how you can use FactoryMan to build factories for your Elixir projects.
+FactoryMan provides a simple, flexible way to create test data with automatic struct building, database insertion, and customizable hooks.
 
-See [this directory](https://github.com/arcanemachine/simple-factory-demo/blob/main/test/support/factories/) for examples of the repo in action.
+## Installation
 
-## Getting started
-
-This repo can be cloned as a way of examining the mechanics of FactoryMan:
-
-- Clone the repo: `https://github.com/arcanemachine/simple-factory-demo`
-
-- Navigate to the repo: `cd simple-factory-demo`
-
-- Install the dependencies: `mix deps.get`
-
-- Set up the database: `mix ecto.setup`
-  - NOTE: You will need to modify the config to work with your Postgres instance. If you skip this step, you can still `build` factories, you just won't be able to `insert` them into the database.
-
-- Open a shell in the `:test` Mix environment: `MIX_ENV=test iex -S mix`
-
-- This repo models a simple blog. You can create Users, Authors, Posts, and Tags:
+Add FactoryMan to your `mix.exs` dependencies:
 
 ```elixir
-post = FactoryManDemo.Factories.Posts.insert!(:post)
-%FactoryManDemo.Posts.Post{
-  __meta__: #Ecto.Schema.Metadata<:loaded, "posts">,
-  id: 1,
-  author_id: 1,
-  title: "A post",
-  content: "A post content",
-  inserted_at: ~N[2025-03-02 22:05:43],
-  updated_at: ~N[2025-03-02 22:05:43],
-  author: %FactoryManDemo.Authors.Author{
-    __meta__: #Ecto.Schema.Metadata<:loaded, "authors">,
-    id: 1,
-    user_id: 1,
-    name: "Allison Anderson",
-    user: #Ecto.Association.NotLoaded<association :user is not loaded>,
-    posts: #Ecto.Association.NotLoaded<association :posts is not loaded>
-  },
-  tags: [
-    %FactoryManDemo.Tags.Tag{
-      __meta__: #Ecto.Schema.Metadata<:loaded, "tags">,
-      id: 1,
-      name: "hello",
-      posts: #Ecto.Association.NotLoaded<association :posts is not loaded>
-    }
+def deps do
+  [
+    {:factory_man, "0.1.0"}
   ]
-}
+end
 ```
+
+Then run `mix deps.get`.
+
+## Quick Start
+
+Create a factory module:
+
+```elixir
+defmodule MyApp.Factories.Users do
+  use FactoryMan, repo: MyApp.Repo
+
+  alias MyApp.Users.User
+
+  deffactory user(params \\ %{}), struct: User do
+    base_params = %{username: "user-#{System.os_time()}"}
+
+    Map.merge(base_params, params)
+  end
+end
+```
+
+Build and insert in tests:
+
+```elixir
+# Build a struct (not persisted)
+user = MyApp.Factories.Users.build_user_struct(%{username: "test_user"})
+# => %User{id: nil, username: "test_user"}
+
+# Insert into database
+user = MyApp.Factories.Users.insert_user!(%{username: "test_user"})
+# => %User{id: 1, username: "test_user"}
+
+# Insert multiple records
+users = MyApp.Factories.Users.insert_user_list!(3)
+# => [%User{id: 1, ...}, %User{id: 2, ...}, %User{id: 3, ...}]
+```
+
+## Features
+
+- **Automatic struct building** - Define Ecto schemas and FactoryMan handles the rest
+- **Database insertion** - Built-in `insert_` functions with configurable repo
+- **List factories** - Create multiple records with `*_list` functions
+- **Sequence generation** - Automatic unique value generation for usernames, emails, etc.
+- **Lazy evaluation** - Compute values at build time with 0 or 1 arity functions
+- **Factory composition** - Extend factories and nest them for complex associations
+- **Hooks** - Transform data at build, insert, or any stage with custom hooks
+
+## Documentation
+
+Full documentation is available in the `FactoryMan` module:
+
+- Basic factory creation and usage
+- List factories for bulk data creation
+- Sequence generation for unique values
+- Lazy evaluation for computed attributes
+- Factory inheritance with the `:extends` option
+- Hooks for custom transformation logic
+
+## License
+
+MIT License - see [LICENSE.md](LICENSE.md)
