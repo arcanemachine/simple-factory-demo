@@ -97,7 +97,7 @@ defmodule FactoryManDemo.Factories do
       username: "user-#{System.os_time()}",
       first_name: "User",
       # Lazy 0-arity: Value computed at build time
-      created_at: fn -> DateTime.utc_now(:second) end,
+      created_at: fn -> DateTime.utc_now() end,
       # Lazy 1-arity: Access the parent struct being built
       full_name: fn user -> "#{user.first_name} Userson" end
     }

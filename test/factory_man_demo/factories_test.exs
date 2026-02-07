@@ -97,4 +97,62 @@ defmodule FactoryManDemo.FactoriesTest do
   test "can insert a factory product with assocs from another factory product" do
     raise "TODO: FIXME"
   end
+
+  # Lazy Evaluation - 0-arity functions
+  test "0-arity lazy functions are evaluated at build time" do
+    params = Factories.build_lazy_user_params()
+
+    # Verify the function was evaluated to a DateTime struct
+    assert %DateTime{} = params.created_at
+    # Verify it's not still a function
+    refute is_function(params.created_at)
+  end
+
+  test "0-arity lazy functions are evaluated fresh on each call" do
+    params1 = Factories.build_lazy_user_params()
+    :timer.sleep(10)
+    params2 = Factories.build_lazy_user_params()
+
+    # Timestamps should be different
+    refute params1.created_at == params2.created_at
+  end
+
+  # Lazy Evaluation - 1-arity functions
+  test "1-arity lazy functions receive the parent struct" do
+    params = Factories.build_lazy_user_params(%{first_name: "John"})
+
+    assert params.full_name == "John Userson"
+  end
+
+  test "1-arity lazy functions can access other lazy-evaluated fields" do
+    params = Factories.build_lazy_user_params(%{first_name: "Jane"})
+
+    # full_name depends on first_name
+    assert params.full_name == "Jane Userson"
+  end
+
+  # Lazy Evaluation - With Struct Building
+  test "lazy evaluation works when building structs" do
+    author = Factories.build_lazy_author_struct()
+
+    # user should be a User struct, not a function
+    assert %User{} = author.user
+    refute is_function(author.user)
+  end
+
+  test "lazy associations are built fresh on each call" do
+    author1 = Factories.build_lazy_author_struct()
+    author2 = Factories.build_lazy_author_struct()
+
+    # Each call should build a different user
+    refute author1.user.username == author2.user.username
+  end
+
+  # Lazy Evaluation - Override via params
+  test "lazy values can be overridden with regular values" do
+    fixed_time = DateTime.utc_now()
+    params = Factories.build_lazy_user_params(%{created_at: fixed_time})
+
+    assert params.created_at == fixed_time
+  end
 end
