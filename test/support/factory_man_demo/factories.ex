@@ -91,15 +91,13 @@ defmodule FactoryManDemo.Factories do
     Map.merge(base_params, params)
   end
 
-  # Factory demonstrating lazy evaluation with 0-arity functions (params only)
-  # Use build_lazy_params/0 or build_lazy_params/1 - no struct builder since User schema
-  # doesn't have the :computed_at field
-  deffactory lazy_user(params \\ %{}) do
+  # Factories that demonstrate lazy evaluation
+  deffactory lazy_user(params \\ %{}), struct: User do
     base_params = %{
       username: "user-#{System.os_time()}",
       first_name: "User",
       # Lazy 0-arity: Value computed at build time
-      created_at: fn -> DateTime.utc_now() end,
+      created_at: fn -> DateTime.utc_now(:second) end,
       # Lazy 1-arity: Access the parent struct being built
       full_name: fn user -> "#{user.first_name} Userson" end
     }
@@ -107,13 +105,10 @@ defmodule FactoryManDemo.Factories do
     Map.merge(base_params, params)
   end
 
-  # Factory demonstrating lazy evaluation building associations
-  # The user field is built lazily at struct creation time
-  deffactory author_with_lazy_user(params \\ %{}), struct: Author do
+  deffactory lazy_author(params \\ %{}), struct: Author do
     base_params = %{
-      name: "Author-#{System.os_time()}",
-      # 0-arity: build a user at build time (not at factory definition time)
-      user: fn -> build_user_struct() end
+      name: fn author -> "author-#{author.user.first_name}" end,
+      user: params[:user] || build_lazy_user_struct()
     }
 
     Map.merge(base_params, params)
