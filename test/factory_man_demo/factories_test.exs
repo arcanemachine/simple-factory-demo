@@ -269,4 +269,289 @@ defmodule FactoryManDemo.FactoriesTest do
     assert %User{} = loaded_author.user
     assert is_integer(loaded_author.user.id)
   end
+
+  # List builder functions - params
+  test "can build params list with default params" do
+    params_list = Factories.build_user_params_list(3)
+
+    assert length(params_list) == 3
+    assert Enum.all?(params_list, &is_map/1)
+    assert Enum.all?(params_list, &Map.has_key?(&1, :username))
+    # Each item should have a unique username
+    usernames = Enum.map(params_list, & &1.username)
+    assert length(Enum.uniq(usernames)) == 3
+  end
+
+  test "can build params list with custom params" do
+    params_list = Factories.build_user_params_list(2, %{username: "custom"})
+
+    assert length(params_list) == 2
+    assert Enum.all?(params_list, &(&1.username == "custom"))
+  end
+
+  test "build params list with count 0 returns empty list" do
+    assert [] = Factories.build_user_params_list(0)
+  end
+
+  # List builder functions - structs
+  test "can build struct list with default params" do
+    struct_list = Factories.build_user_struct_list(3)
+
+    assert length(struct_list) == 3
+    assert Enum.all?(struct_list, &(%User{} = &1))
+    # Structs should not be persisted yet (id is nil)
+    assert Enum.all?(struct_list, &is_nil(&1.id))
+    # Each struct should have unique username
+    usernames = Enum.map(struct_list, & &1.username)
+    assert length(Enum.uniq(usernames)) == 3
+  end
+
+  test "can build struct list with custom params" do
+    struct_list = Factories.build_user_struct_list(2, %{username: "struct-custom"})
+
+    assert length(struct_list) == 2
+    assert Enum.all?(struct_list, &(&1.username == "struct-custom"))
+  end
+
+  test "build struct list with count 0 returns empty list" do
+    assert [] = Factories.build_user_struct_list(0)
+  end
+
+  # List insert functions
+  test "can insert list with default params" do
+    users = Factories.insert_user_list!(3)
+
+    assert length(users) == 3
+    assert Enum.all?(users, &(%User{} = &1))
+    # All should be persisted with IDs
+    assert Enum.all?(users, &is_integer(&1.id))
+    # Each should have unique username
+    usernames = Enum.map(users, & &1.username)
+    assert length(Enum.uniq(usernames)) == 3
+  end
+
+  test "can insert list with custom params" do
+    # Use unique usernames since username has a unique constraint
+    unique_val = System.os_time()
+    users = Factories.insert_user_list!(2, %{username: fn -> "list-custom-#{unique_val}-#{System.os_time()}" end})
+
+    assert length(users) == 2
+    assert Enum.all?(users, &is_integer(&1.id))
+    # Both usernames should start with the same prefix pattern
+    assert Enum.all?(users, &String.starts_with?(&1.username, "list-custom-"))
+  end
+
+  test "insert list with count 0 returns empty list" do
+    assert [] = Factories.insert_user_list!(0)
+  end
+
+  test "can insert list with repo opts" do
+    users = Factories.insert_user_list!(2, %{}, returning: true)
+
+    assert length(users) == 2
+    # returning: true returns all fields with database defaults
+    assert Enum.all?(users, &is_integer(&1.id))
+  end
+
+  # List functions with lazy evaluation
+  test "lazy evaluation creates unique values for each item in params list" do
+    params_list = Factories.build_lazy_user_params_list(3)
+
+    # Each item should have a unique timestamp
+    timestamps = Enum.map(params_list, & &1.created_at)
+    assert length(Enum.uniq(timestamps)) == 3
+  end
+
+  test "lazy evaluation creates unique values for each item in struct list" do
+    struct_list = Factories.build_lazy_author_struct_list(2)
+
+    # Each struct should have a unique user
+    users = Enum.map(struct_list, & &1.user)
+    usernames = Enum.map(users, & &1.username)
+    assert length(Enum.uniq(usernames)) == 2
+  end
+
+  test "lazy evaluation creates unique values for each inserted item in list" do
+    users = Factories.insert_user_list!(3, %{username: fn -> "lazy-user-#{System.os_time()}" end})
+
+    # Each user should have a unique username
+    usernames = Enum.map(users, & &1.username)
+    assert length(Enum.uniq(usernames)) == 3
+  end
+
+  # List functions with associations
+  test "can insert list of authors with associated users" do
+    authors = Factories.insert_author_list!(2)
+
+    assert length(authors) == 2
+    assert Enum.all?(authors, &(%Author{} = &1))
+    # Authors should have user associations
+    assert Enum.all?(authors, &is_integer(&1.user_id))
+    # Preload and verify unique users
+    loaded_authors = Enum.map(authors, &Repo.preload(&1, :user))
+    user_ids = Enum.map(loaded_authors, & &1.user.id)
+    assert length(Enum.uniq(user_ids)) == 2
+  end
+
+  # Atomic list tests - params_list arity variants
+  test "params_list arity 1 calls arity 2 with empty map" do
+    result = Factories.build_user_params_list(1)
+
+    assert length(result) == 1
+    assert [%{username: _}] = result
+  end
+
+  test "params_list arity 2 with empty map builds with defaults" do
+    result = Factories.build_user_params_list(1, %{})
+
+    assert length(result) == 1
+    assert [%{username: username}] = result
+    assert is_binary(username)
+  end
+
+  test "params_list with single item returns list with one element" do
+    result = Factories.build_user_params_list(1, %{username: "single"})
+
+    assert result == [%{username: "single"}]
+  end
+
+  test "params_list returns list type" do
+    result = Factories.build_user_params_list(2)
+
+    assert is_list(result)
+  end
+
+  # Atomic list tests - struct_list arity variants
+  test "struct_list arity 1 calls arity 2 with empty map" do
+    result = Factories.build_user_struct_list(1)
+
+    assert length(result) == 1
+    assert [%User{}] = result
+  end
+
+  test "struct_list arity 2 with empty map builds with defaults" do
+    result = Factories.build_user_struct_list(1, %{})
+
+    assert length(result) == 1
+    assert [%User{username: username}] = result
+    assert is_binary(username)
+  end
+
+  test "struct_list with single item returns list with one struct" do
+    result = Factories.build_user_struct_list(1, %{username: "single-struct"})
+
+    assert length(result) == 1
+    assert [%User{username: "single-struct", id: nil}] = result
+  end
+
+  test "struct_list returns proper struct types" do
+    result = Factories.build_author_struct_list(2)
+
+    assert length(result) == 2
+    assert Enum.all?(result, fn %Author{} -> true; _ -> false end)
+  end
+
+  # Atomic list tests - insert_list arity variants
+  test "insert_list arity 1 calls with empty params and opts" do
+    result = Factories.insert_user_list!(1)
+
+    assert length(result) == 1
+    assert [%User{id: id}] = result
+    assert is_integer(id)
+  end
+
+  test "insert_list arity 2 with map calls with empty opts" do
+    result = Factories.insert_user_list!(1, %{username: "arity2-map"})
+
+    assert length(result) == 1
+    assert [%User{username: "arity2-map"}] = result
+  end
+
+  test "insert_list arity 2 with list calls arity 3 with empty params" do
+    result = Factories.insert_user_list!(1, [returning: true])
+
+    assert length(result) == 1
+    assert [%User{id: _}] = result
+  end
+
+  test "insert_list arity 3 with all arguments" do
+    result = Factories.insert_user_list!(1, %{username: "arity3"}, returning: true)
+
+    assert length(result) == 1
+    assert [%User{username: "arity3"}] = result
+  end
+
+  # Atomic tests - data integrity
+  test "params_list preserves all map keys" do
+    result = Factories.build_user_params_list(1, %{username: "test", first_name: "John", extra: "value"})
+
+    assert [%{username: "test", first_name: "John", extra: "value"}] = result
+  end
+
+  test "struct_list creates independent structs" do
+    [struct1, struct2] = Factories.build_user_struct_list(2)
+
+    # Modifying one should not affect the other
+    modified = %{struct1 | username: "modified"}
+    assert struct2.username != modified.username
+  end
+
+  test "insert_list creates independent records" do
+    [user1, user2] = Factories.insert_user_list!(2)
+
+    assert user1.id != user2.id
+    refute user1.id == user2.id
+  end
+
+  # Atomic tests - count validation
+  test "params_list with count 1 returns single item list" do
+    result = Factories.build_user_params_list(1)
+    assert length(result) == 1
+  end
+
+  test "struct_list with count 1 returns single item list" do
+    result = Factories.build_user_struct_list(1)
+    assert length(result) == 1
+  end
+
+  test "insert_list with count 1 returns single inserted record" do
+    result = Factories.insert_user_list!(1)
+    assert length(result) == 1
+    assert [%User{id: id}] = result
+    assert is_integer(id)
+  end
+
+  # Atomic tests - empty params handling
+  test "params_list with nil map falls back to defaults" do
+    # Using arity 2 with empty map, params will be empty
+    result = Factories.build_user_params_list(1, %{})
+    assert [%{username: username}] = result
+    assert is_binary(username)
+  end
+
+  test "struct_list builds complete struct with all fields" do
+    [struct] = Factories.build_user_struct_list(1, %{username: "complete", first_name: "Test"})
+
+    assert struct.username == "complete"
+    assert struct.first_name == "Test"
+    assert struct.id == nil
+    assert struct.__struct__ == User
+  end
+
+  # Atomic tests - list with non-struct factories
+  test "params_list works with params-only factories" do
+    result = Factories.build_non_struct_params_list(3)
+
+    assert length(result) == 3
+    assert Enum.all?(result, fn map ->
+      is_map(map) and not Map.has_key?(map, :__struct__)
+    end)
+  end
+
+  test "params_list for non-insertable factory works" do
+    result = Factories.build_non_insertable_params_list(2)
+
+    assert length(result) == 2
+    assert Enum.all?(result, &is_map/1)
+  end
 end

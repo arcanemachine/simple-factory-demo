@@ -210,6 +210,20 @@ defmodule FactoryMan do
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
+      # Generate params list builder function
+      # List factory approach inspired by ExMachina's build_list/insert_list functions
+      # See: https://github.com/thoughtbot/ex_machina
+      def unquote(:"build_#{factory_name}_params_list")(count)
+          when is_integer(count) and count >= 0 do
+        unquote(:"build_#{factory_name}_params_list")(count, %{})
+      end
+
+      def unquote(:"build_#{factory_name}_params_list")(count, params)
+          when is_integer(count) and count >= 0 and is_map(params) do
+        Stream.repeatedly(fn -> unquote(:"build_#{factory_name}_params")(params) end)
+        |> Enum.take(count)
+      end
+
       if struct != nil and build_struct? != false do
         # Generate struct builder function - builds head inline from shared arg_ast
         def unquote({:"build_#{factory_name}_struct", [], [arg_ast]}) do
@@ -218,6 +232,22 @@ defmodule FactoryMan do
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_build_struct).(&1))
           |> then(&struct!(unquote(struct), &1))
           |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_struct).(&1))
+        end
+
+        # Generate struct list builder function
+        # List factory approach inspired by ExMachina's build_list/insert_list functions
+        # See: https://github.com/thoughtbot/ex_machina
+        def unquote(:"build_#{factory_name}_struct_list")(count)
+            when is_integer(count) and count >= 0 do
+          unquote(:"build_#{factory_name}_struct_list")(count, %{})
+        end
+
+        def unquote(:"build_#{factory_name}_struct_list")(count, params)
+            when is_integer(count) and count >= 0 and is_map(params) do
+          Stream.repeatedly(fn ->
+            unquote(:"build_#{factory_name}_struct")(params)
+          end)
+          |> Enum.take(count)
         end
 
         is_insertable_ecto_schema_factory? =
@@ -247,6 +277,31 @@ defmodule FactoryMan do
             |> then(&FactoryMan.get_hook_handler(unquote(hooks), :before_insert).(&1))
             |> unquote(repo).insert!(repo_insert_opts)
             |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_insert).(&1))
+          end
+
+          # Generate struct insert list functions
+          def unquote(:"insert_#{factory_name}_list!")(count)
+              when is_integer(count) and count >= 0 do
+            unquote(:"insert_#{factory_name}_list!")(count, %{}, [])
+          end
+
+          def unquote(:"insert_#{factory_name}_list!")(count, repo_insert_opts)
+              when is_integer(count) and count >= 0 and is_list(repo_insert_opts) do
+            unquote(:"insert_#{factory_name}_list!")(count, %{}, repo_insert_opts)
+          end
+
+          def unquote(:"insert_#{factory_name}_list!")(count, params)
+              when is_integer(count) and count >= 0 and is_map(params) do
+            unquote(:"insert_#{factory_name}_list!")(count, params, [])
+          end
+
+          def unquote(:"insert_#{factory_name}_list!")(count, params, repo_insert_opts)
+              when is_integer(count) and count >= 0 and is_map(params) and
+                     is_list(repo_insert_opts) do
+            Stream.repeatedly(fn ->
+              unquote(:"insert_#{factory_name}!")(params, repo_insert_opts)
+            end)
+            |> Enum.take(count)
           end
         end
       end
