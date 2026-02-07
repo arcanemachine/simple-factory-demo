@@ -7,6 +7,9 @@ defmodule FactoryManDemo.Users.User do
 
   schema "users" do
     field :username, :string
+    field :created_at, :utc_datetime
+    field :first_name, :string
+    field :full_name, :string
 
     has_one :author, Author
   end

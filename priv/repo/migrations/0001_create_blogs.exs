@@ -8,6 +8,9 @@ defmodule FactoryManDemo.Repo.Migrations.CreateBlogs do
 
     create table("users") do
       add :username, :citext, null: false
+      add :created_at, :utc_datetime
+      add :first_name, :string
+      add :full_name, :string
     end
 
     create unique_index("users", [:username])

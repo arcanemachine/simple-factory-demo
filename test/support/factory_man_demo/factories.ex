@@ -91,36 +91,29 @@ defmodule FactoryManDemo.Factories do
     Map.merge(base_params, params)
   end
 
-  # Factory demonstrating lazy evaluation with 0-arity functions
-  deffactory lazy_user(params \\ %{}), struct: User do
+  # Factory demonstrating lazy evaluation with 0-arity functions (params only)
+  # Use build_lazy_params/0 or build_lazy_params/1 - no struct builder since User schema
+  # doesn't have the :computed_at field
+  deffactory lazy_user(params \\ %{}) do
     base_params = %{
       username: "user-#{System.os_time()}",
-      # 0-arity: called with no arguments, evaluated at build time
-      lazy_timestamp: fn -> System.os_time() end
+      first_name: "User",
+      # Lazy 0-arity: Value computed at build time
+      created_at: fn -> DateTime.utc_now() end,
+      # Lazy 1-arity: Access the parent struct being built
+      full_name: fn user -> "#{user.first_name} Userson" end
     }
 
     Map.merge(base_params, params)
   end
 
-  # Factory demonstrating lazy evaluation with 1-arity functions
-  deffactory user_with_derived(params \\ %{}), struct: User do
-    base_params = %{
-      username: "user-#{System.os_time()}",
-      # 1-arity: receives the parent struct being built
-      display_name: fn user -> "Display: #{user.username}" end
-    }
-
-    Map.merge(base_params, params)
-  end
-
-  # Factory with both 0-arity and 1-arity lazy functions
-  deffactory lazy_author(params \\ %{}), struct: Author do
+  # Factory demonstrating lazy evaluation building associations
+  # The user field is built lazily at struct creation time
+  deffactory author_with_lazy_user(params \\ %{}), struct: Author do
     base_params = %{
       name: "Author-#{System.os_time()}",
-      # 0-arity: build a user at build time
-      user: fn -> build_user_struct() end,
-      # 1-arity: access other fields of the author being built
-      bio: fn author -> "Bio for #{author.name}" end
+      # 0-arity: build a user at build time (not at factory definition time)
+      user: fn -> build_user_struct() end
     }
 
     Map.merge(base_params, params)
