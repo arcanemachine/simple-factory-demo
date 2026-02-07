@@ -206,6 +206,7 @@ defmodule FactoryMan do
           FactoryMan.get_hook_handler(unquote(hooks), :before_build_params).(unquote(user_var))
 
         unquote(block)
+        |> FactoryMan.evaluate_lazy_attributes()
         |> then(&FactoryMan.get_hook_handler(unquote(hooks), :after_build_params).(&1))
       end
 
@@ -250,6 +251,42 @@ defmodule FactoryMan do
         end
       end
     end
+  end
+
+  @doc """
+  Evaluate lazy attributes in a map or struct.
+
+  Functions with 0 arity are called with no arguments.
+  Functions with 1 arity receive the parent factory as their argument.
+
+  ## Examples
+
+      iex> FactoryMan.evaluate_lazy_attributes(%{name: "test", timestamp: fn -> 12345 end})
+      %{name: "test", timestamp: 12345}
+
+      iex> FactoryMan.evaluate_lazy_attributes(%{first: "John", last: fn attrs -> attrs.first <> " Smith" end})
+      %{first: "John", last: "John Smith"}
+  """
+  @spec evaluate_lazy_attributes(struct | map) :: struct | map
+  def evaluate_lazy_attributes(%{__struct__: record} = factory) do
+    struct!(
+      record,
+      factory |> Map.from_struct() |> do_evaluate_lazy_attributes(factory)
+    )
+  end
+
+  def evaluate_lazy_attributes(attrs) when is_map(attrs) do
+    do_evaluate_lazy_attributes(attrs, attrs)
+  end
+
+  defp do_evaluate_lazy_attributes(attrs, parent_factory) do
+    attrs
+    |> Enum.map(fn
+      {k, v} when is_function(v, 1) -> {k, v.(parent_factory)}
+      {k, v} when is_function(v) -> {k, v.()}
+      {_, _} = tuple -> tuple
+    end)
+    |> Enum.into(%{})
   end
 
   @doc """

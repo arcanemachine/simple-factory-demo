@@ -90,4 +90,39 @@ defmodule FactoryManDemo.Factories do
 
     Map.merge(base_params, params)
   end
+
+  # Factory demonstrating lazy evaluation with 0-arity functions
+  deffactory lazy_user(params \\ %{}), struct: User do
+    base_params = %{
+      username: "user-#{System.os_time()}",
+      # 0-arity: called with no arguments, evaluated at build time
+      lazy_timestamp: fn -> System.os_time() end
+    }
+
+    Map.merge(base_params, params)
+  end
+
+  # Factory demonstrating lazy evaluation with 1-arity functions
+  deffactory user_with_derived(params \\ %{}), struct: User do
+    base_params = %{
+      username: "user-#{System.os_time()}",
+      # 1-arity: receives the parent struct being built
+      display_name: fn user -> "Display: #{user.username}" end
+    }
+
+    Map.merge(base_params, params)
+  end
+
+  # Factory with both 0-arity and 1-arity lazy functions
+  deffactory lazy_author(params \\ %{}), struct: Author do
+    base_params = %{
+      name: "Author-#{System.os_time()}",
+      # 0-arity: build a user at build time
+      user: fn -> build_user_struct() end,
+      # 1-arity: access other fields of the author being built
+      bio: fn author -> "Bio for #{author.name}" end
+    }
+
+    Map.merge(base_params, params)
+  end
 end
