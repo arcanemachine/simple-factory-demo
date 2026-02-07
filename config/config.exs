@@ -1,13 +1,8 @@
 import Config
 
-config :factory_man_demo, ecto_repos: [FactoryManDemo.Repo]
+# Import environment-specific config if it exists
+env_config = "#{config_env()}.exs"
 
-config :factory_man_demo, FactoryManDemo.Repo,
-  username: "postgres",
-  password: "your_postgres_password",
-  database: "factory_man_demo",
-  hostname: System.get_env("POSTGRES_HOST", "localhost"),
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2
-
-config :logger, level: System.get_env("LOGGER_LEVEL", "warning") |> String.to_existing_atom()
+if File.exists?("#{__DIR__}/#{env_config}") do
+  import_config env_config
+end

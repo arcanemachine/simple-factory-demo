@@ -1,22 +1,31 @@
-defmodule FactoryManDemo.MixProject do
+defmodule FactoryMan.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :factory_man_demo,
+      app: :factory_man,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      package: package()
     ]
   end
 
   def application do
     [
-      extra_applications: [:logger],
-      mod: {FactoryManDemo.Application, []}
+      extra_applications: [:logger]
+    ]
+  end
+
+  defp package do
+    [
+      name: :factory_man,
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/yourname/factory_man"}
     ]
   end
 
