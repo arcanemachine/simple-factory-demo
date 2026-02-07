@@ -23,7 +23,6 @@ defmodule FactoryMan do
       Map.merge(base_params, params)
     end
 
-    @doc "You can add docstrings for your builder functions, if desired."
     deffactory profile(params \\ %{}), struct: Profile do
       base_params = %{
         user: params[:user] || build_user_struct()
@@ -54,8 +53,8 @@ defmodule FactoryMan do
 
   #### `:extends` (module) - Reduce boilerplate by inheriting options from a parent factory
 
-  You may create a "base" factory, which can be extended to produce "child" factories (which
-  inherit the options set in the parent factory module(s)):
+  You may create a "parent" factory module, which can be extended to produce "child" factories
+  (which inherit the options set in any parent factory module(s)):
 
   - Create a base factory:
 
@@ -91,6 +90,11 @@ defmodule FactoryMan do
   ```
 
   This child factory will now use any options set in the parent factory (repo, hooks, etc.).
+
+  > #### Tip {: .tip}
+  >
+  > All factory options cascade from parent to child. You can set any option at whatever level you
+  > want.
 
   ## Factory conventions
 
