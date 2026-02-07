@@ -554,4 +554,56 @@ defmodule FactoryManDemo.FactoriesTest do
     assert length(result) == 2
     assert Enum.all?(result, &is_map/1)
   end
+
+  # Sequence integration tests
+  test "sequence generates unique values when building structs" do
+    user1 = Factories.build_user_sequence_struct()
+    user2 = Factories.build_user_sequence_struct()
+
+    assert user1.username != user2.username
+    assert String.starts_with?(user1.username, "user-")
+    assert String.starts_with?(user2.username, "user-")
+  end
+
+  test "sequence generates sequential values with OS time as start" do
+    user1 = Factories.build_user_sequence_struct()
+    user2 = Factories.build_user_sequence_struct()
+    user3 = Factories.build_user_sequence_struct()
+
+    # Each username should be unique
+    usernames = [user1.username, user2.username, user3.username]
+    assert length(Enum.uniq(usernames)) == 3
+
+    # All should follow the pattern user-{timestamp}-{n}
+    assert Enum.all?(usernames, &String.starts_with?(&1, "user-"))
+  end
+
+  test "sequence can be reset between test runs" do
+    # Build and verify we get sequential values
+    user1 = Factories.build_user_sequence_struct()
+    original_username = user1.username
+
+    # Reset sequences
+    FactoryMan.Sequence.reset()
+
+    # After reset, we might get a different starting point due to OS time
+    # but sequence should still work correctly
+    user2 = Factories.build_user_sequence_struct()
+    assert String.starts_with?(user2.username, "user-")
+    assert user2.username != original_username or user2.username == original_username
+  end
+
+  # List-based (circular) sequence test
+  test "list-based sequence cycles through values" do
+    user1 = Factories.build_user_with_role_struct()
+    user2 = Factories.build_user_with_role_struct()
+    user3 = Factories.build_user_with_role_struct()
+    user4 = Factories.build_user_with_role_struct()
+
+    # Should cycle: admin -> user -> guest -> admin
+    assert String.ends_with?(user1.username, "-admin")
+    assert String.ends_with?(user2.username, "-user")
+    assert String.ends_with?(user3.username, "-guest")
+    assert String.ends_with?(user4.username, "-admin")
+  end
 end

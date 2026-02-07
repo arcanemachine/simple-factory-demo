@@ -5,7 +5,10 @@ defmodule FactoryManDemo.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [FactoryManDemo.Repo]
+    children = [
+      FactoryManDemo.Repo,
+      FactoryMan.Sequence
+    ]
 
     opts = [strategy: :one_for_one, name: FactoryManDemo.Supervisor]
     Supervisor.start_link(children, opts)

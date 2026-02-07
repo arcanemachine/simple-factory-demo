@@ -141,7 +141,7 @@ defmodule FactoryMan do
 
   defmacro __using__(opts \\ []) do
     quote do
-      import unquote(__MODULE__), only: [deffactory: 2, deffactory: 3]
+      import unquote(__MODULE__), only: [deffactory: 2, deffactory: 3, sequence: 1, sequence: 2, sequence: 3]
 
       parent_factory_opts =
         case unquote(opts)[:extends] do
@@ -369,4 +369,69 @@ defmodule FactoryMan do
       &YourProject.Factories.Users.user_after_insert_handler/1
   """
   def get_hook_handler(hooks, hook), do: hooks[hook] || (&FactoryMan.fallback_hook_handler/1)
+
+  @doc """
+  Generates a sequence of strings.
+
+  The sequence name is used as the beginning of the string. For example, if you
+  do `sequence("joe")`, you will get back `"joe0"`, then `"joe1"`, and so on.
+
+  ## Example
+
+      def user_factory do
+        %{
+          username: sequence("joe")
+        }
+      end
+
+  If you want to customize the returned string you can use `sequence/2`.
+  """
+
+  @spec sequence(String.t()) :: String.t()
+  def sequence(name), do: FactoryMan.Sequence.next(name)
+
+  @doc """
+  Generates and returns a unique sequence.
+
+  If a formatter function is passed, it will be called with the current
+  position of the sequence. You can also pass a list, and each item in the list
+  will be returned in sequence.
+
+  ## Example with a formatter function
+
+      def user_factory do
+        %{
+          email: sequence(:email, fn n -> "me-\#{n}@foo.com" end)
+        }
+      end
+
+  ## Example with a list
+
+      def user_factory do
+        %{
+          name: sequence(:name, ["Joe", "Mike", "Sarah"])
+        }
+      end
+  """
+
+  @spec sequence(any, (integer -> any) | nonempty_list) :: any
+  def sequence(name, formatter), do: FactoryMan.Sequence.next(name, formatter)
+
+  @doc """
+  Generates and returns a unique sequence with options.
+
+  Currently, the only option is `:start_at` which specifies the number to
+  start the sequence at.
+
+  ## Example
+
+      def money_factory do
+        %{
+          cents: sequence(:cents, fn n -> "\#{n}" end, start_at: 600)
+        }
+      end
+  """
+
+  @spec sequence(any, (integer -> any) | nonempty_list, start_at: non_neg_integer) :: any
+  def sequence(name, formatter, opts), do: FactoryMan.Sequence.next(name, formatter, opts)
 end

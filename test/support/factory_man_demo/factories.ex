@@ -113,4 +113,25 @@ defmodule FactoryManDemo.Factories do
 
     Map.merge(base_params, params)
   end
+
+  # Factory demonstrating sequence generation custom start value
+  deffactory user_sequence(params \\ %{}), struct: User do
+    # Use sequence with system OS time as the starting counter value
+    # This ensures unique usernames even across test runs
+    base_params = %{
+      username: sequence(:user_id, fn n -> "user-#{n}" end, start_at: System.os_time())
+    }
+
+    Map.merge(base_params, params)
+  end
+
+  # Factory demonstrating list-based (circular) sequences
+  deffactory user_with_role(params \\ %{}), struct: User do
+    # Cycles through: user-{timestamp}-admin, user-{timestamp}-user, user-{timestamp}-guest...
+    base_params = %{
+      username: fn -> "user-#{System.os_time()}-#{sequence(:user_role, ["admin", "user", "guest"])}" end
+    }
+
+    Map.merge(base_params, params)
+  end
 end
