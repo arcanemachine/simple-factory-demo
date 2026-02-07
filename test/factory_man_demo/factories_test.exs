@@ -60,11 +60,19 @@ defmodule FactoryManDemo.FactoriesTest do
   end
 
   # Insert opts
-  @tag :skip
   test "can pass opts to `Repo.insert/2`" do
-    # returning: true
-    # on_conflict: replace
-    raise "FIXME: TODO"
+    # Test returning: true - returns the full record with defaults
+    user1 =
+      Factories.insert_user!(%{username: "returning-test-#{get_unique_value()}"}, returning: true)
+
+    assert is_integer(user1.id)
+
+    # Test on_conflict: :nothing - won't raise error on conflict
+    duplicate_username = "conflict-test-#{get_unique_value()}"
+    _user2 = Factories.insert_user!(%{username: duplicate_username})
+
+    # Insert duplicate with on_conflict: :nothing should not raise
+    _user3 = Factories.insert_user!(%{username: duplicate_username}, on_conflict: :nothing)
   end
 
   # Multi-insert
@@ -93,9 +101,19 @@ defmodule FactoryManDemo.FactoriesTest do
     assert Repo.preload(author, :user).user == user
   end
 
-  @tag :skip
   test "can insert a factory product with assocs from another factory product" do
-    raise "TODO: FIXME"
+    # Build a user and author together, inserting both
+    user = Factories.build_user_struct(%{username: "assoc-user-#{get_unique_value()}"})
+    author = Factories.insert_author!(%{user: user, name: "Test Author"})
+
+    # Verify the user was inserted
+    assert is_integer(author.user_id)
+    assert author.user_id > 0
+
+    # Verify we can preload the associated user
+    loaded_author = Repo.preload(author, :user)
+    assert %User{} = loaded_author.user
+    assert loaded_author.user.id == author.user_id
   end
 
   # Lazy Evaluation - 0-arity functions
