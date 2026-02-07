@@ -168,9 +168,105 @@ defmodule FactoryManDemo.FactoriesTest do
 
   # Lazy Evaluation - Override via params
   test "lazy values can be overridden with regular values" do
-    fixed_time = DateTime.utc_now()
+    fixed_time = DateTime.utc_now() |> DateTime.truncate(:second)
     params = Factories.build_lazy_user_params(%{created_at: fixed_time})
 
     assert params.created_at == fixed_time
+  end
+
+  # Non-struct factories
+  test "can build params-only factory (returns map, not struct)" do
+    params = Factories.build_non_struct_params()
+
+    assert is_map(params)
+    refute Map.has_key?(params, :__struct__)
+    assert is_binary(params.name)
+    assert is_integer(params.age)
+  end
+
+  # Factory with custom parameter name
+  test "can use factory with custom param variable name" do
+    params = Factories.build_with_custom_param_name_params(%{name: "custom"})
+
+    assert params.name == "custom"
+  end
+
+  # Factory with hooks
+  test "hooks can transform factory output" do
+    params = Factories.build_with_after_build_params_hook_params()
+
+    assert params.hello == :world
+  end
+
+  # Params-only struct factory (has struct option so it creates struct builder)
+  test "params_only factory has both params and struct builders" do
+    # Params builder works
+    params = Factories.build_params_only_params()
+    assert is_map(params)
+    assert is_binary(params.username)
+
+    # Struct builder also exists since struct option is set
+    assert function_exported?(Factories, :build_params_only_struct, 0)
+    assert function_exported?(Factories, :build_params_only_struct, 1)
+  end
+
+  # Non-insertable factory
+  test "non_insertable factory has no insert functions" do
+    # Build and struct functions exist
+    assert function_exported?(Factories, :build_non_insertable_params, 0)
+    assert function_exported?(Factories, :build_non_insertable_struct, 0)
+
+    # But insert functions don't exist
+    refute function_exported?(Factories, :insert_non_insertable!, 0)
+    refute function_exported?(Factories, :insert_non_insertable!, 1)
+  end
+
+  # Required params (no default)
+  test "factory without default requires params argument" do
+    # This factory requires params (no default), so calling without should fail
+    # Since the function doesn't exist at arity 0, it raises UndefinedFunctionError
+    # Using apply/3 to avoid compile-time warning about undefined function
+    assert_raise UndefinedFunctionError, fn ->
+      apply(Factories, :build_no_default_fallback_params, [])
+    end
+
+    # Works when params provided
+    params = Factories.build_no_default_fallback_params(%{extra: "data"})
+    assert params.extra == "data"
+  end
+
+  # Embedded schema
+  test "can build embedded schema factory" do
+    embedded = Factories.build_embedded_schema_struct()
+
+    assert %FactoryManDemo.EmbeddedSchema{} = embedded
+    assert embedded.some_field == "some value"
+  end
+
+  test "embedded schema factory has no insert functions" do
+    refute function_exported?(Factories, :insert_embedded_schema!, 0)
+    refute function_exported?(Factories, :insert_embedded_schema!, 1)
+  end
+
+  # Test build_*_params for regular factories
+  test "can build params directly without creating struct" do
+    params = Factories.build_user_params(%{username: "test-user"})
+
+    assert is_map(params)
+    assert params.username == "test-user"
+    refute Map.has_key?(params, :__struct__)
+  end
+
+  # Insert lazy factories
+  test "can insert factories with lazy evaluation" do
+    author = Factories.insert_lazy_author!()
+
+    assert %Author{} = author
+    assert is_integer(author.id)
+
+    # Preload and verify the associated user
+    loaded_author = Repo.preload(author, :user)
+    assert %User{} = loaded_author.user
+    assert is_integer(loaded_author.user.id)
   end
 end
